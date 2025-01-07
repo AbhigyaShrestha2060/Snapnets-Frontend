@@ -1,21 +1,31 @@
 import React from 'react';
-import img1 from '../../assets/images/Logo.png';
-import img2 from '../../assets/images/bg.jpg';
 
 const Board = () => {
   // Static collections data with your provided images
   const collections = [
     {
       name: 'Board Name 1',
-      images: [img2, img2, img1],
+      images: [
+        '../../../public/assets/images/bg.jpg',
+        '../../../public/assets/images/bg.jpg',
+        '../../../public/assets/images/Logo.png',
+      ],
     },
     {
       name: 'Board Name 2',
-      images: [img1, img1, img2],
+      images: [
+        '../../../public/assets/images/Logo.png',
+        '../../../public/assets/images/Logo.png',
+        '../../../public/assets/images/bg.jpg',
+      ],
     },
     {
       name: 'Board Name 3',
-      images: [img1, img2, img1],
+      images: [
+        '../../../public/assets/images/Logo.png',
+        '../../../public/assets/images/bg.jpg',
+        '../../../public/assets/images/Logo.png',
+      ],
     },
   ];
 

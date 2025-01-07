@@ -1,16 +1,19 @@
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getImageById } from '../../api/api';
+import AddBids from '../../components/common/AddBids';
 
 const DetailedProduct = () => {
   const [product, setProduct] = useState({});
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [textareaInput, setTextareaInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isModalVisible, setModalVisible] = useState(false); // State for modal visibility
 
   // Fetch product details using API
   useEffect(() => {
@@ -27,20 +30,19 @@ const DetailedProduct = () => {
           uploadedBy,
         } = response.data.image;
 
-        // Populate the product details from the response
         setProduct({
-          image: image, // Image URL
-          title: imageTitle, // Title
-          description: imageDescription, // Description
-          isPortrait: isPortrait, // Orientation
-          date: new Date(uploadDate).toLocaleDateString(), // Convert uploadDate to readable format
-          likes: totalLikes, // Total likes
-          creator: uploadedBy.username, // Creator's username
-          rating: 4, // Placeholder value
-          price: 'Rs 5000', // Placeholder value
-          highestBid: 'Rs 10,000', // Placeholder value
-          stockLeft: '25/50 sold', // Placeholder value
-          auctionEnd: '10:10:10', // Placeholder value
+          image: image,
+          title: imageTitle,
+          description: imageDescription,
+          isPortrait: isPortrait,
+          date: new Date(uploadDate).toLocaleDateString(),
+          likes: totalLikes,
+          creator: uploadedBy.username,
+          rating: 4,
+          price: 'Rs 5000',
+          highestBid: 'Rs 10,000',
+          stockLeft: '25/50 sold',
+          auctionEnd: '10:10:10',
         });
 
         setLoading(false);
@@ -60,8 +62,18 @@ const DetailedProduct = () => {
   const handleTextareaSubmit = () => {
     if (textareaInput.trim()) {
       console.log('Textarea content submitted:', textareaInput);
-      setTextareaInput(''); // Clear the textarea after submission
+      setTextareaInput('');
     }
+  };
+
+  const handleViewComment = () => {
+    navigate(`/comment/${id}`);
+  };
+
+  const handleBidSubmit = ({ imageId, bidAmount }) => {
+    console.log('Bid Submitted:', { imageId, bidAmount });
+    // Add API call or logic to handle bid submission
+    setModalVisible(false);
   };
 
   return (
@@ -89,7 +101,11 @@ const DetailedProduct = () => {
               }}
             />
           )}
-          <button className='btn btn-danger mt-3 w-75'>Place Bid</button>
+          <button
+            className='btn btn-danger mt-3 w-75'
+            onClick={() => setModalVisible(true)}>
+            Place Bid
+          </button>
         </div>
 
         {/* Right Side: Details */}
@@ -101,7 +117,7 @@ const DetailedProduct = () => {
                 people liked this
               </p>
               <a
-                href='#'
+                onClick={handleViewComment}
                 className='text-decoration-none'>
                 <i className='bi bi-chat-left-text'></i> View Comments
               </a>
@@ -144,17 +160,6 @@ const DetailedProduct = () => {
             <p className='card-text'>Description</p>
             <p>{product.description}</p>
 
-            <p className='card-text mb-2'>Ratings And Review</p>
-            <div className='mb-3'>
-              {[...Array(5)].map((_, i) => (
-                <i
-                  key={i}
-                  className={`bi ${
-                    i < product.rating ? 'bi-star-fill' : 'bi-star'
-                  } text-warning`}></i>
-              ))}
-            </div>
-
             {/* Textarea with Submit Button Inside */}
             <div className='position-relative'>
               <textarea
@@ -163,8 +168,7 @@ const DetailedProduct = () => {
                 rows='2'
                 value={textareaInput}
                 onChange={handleTextareaChange}
-                style={{ paddingRight: '75px' }} // Add space for the button
-              ></textarea>
+                style={{ paddingRight: '75px' }}></textarea>
               {textareaInput && (
                 <button
                   className='btn btn-primary position-absolute top-50 end-0 translate-middle-y me-2'
@@ -176,6 +180,14 @@ const DetailedProduct = () => {
           </div>
         </div>
       </div>
+
+      {/* Bid Modal */}
+      <AddBids
+        show={isModalVisible}
+        handleClose={() => setModalVisible(false)}
+        handleBidSubmit={handleBidSubmit}
+        imageId={id}
+      />
     </div>
   );
 };

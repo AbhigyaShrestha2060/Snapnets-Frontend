@@ -1,14 +1,18 @@
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 import './App.css';
 import Navbar from './components/common/Navbar';
 import Board from './pages/Boards/Boards';
 import Comment from './pages/Comment/Comment';
 import DetailedProduct from './pages/DetailedPage/DetailedPage';
 import Homepage from './pages/Homepage/Homepage';
+import LikedImages from './pages/LikedImages/LikedImages';
 import Login from './pages/Login/Login';
+import MyBids from './pages/MyBids/MyBids';
 import MyUploads from './pages/MyUploads/MyUploads';
 import Profile from './pages/Profile/Profile';
 import Register from './pages/Register/Register';
+import Search from './pages/Search/Search';
 
 function Layout() {
   const location = useLocation(); // useLocation is now inside BrowserRouter
@@ -22,6 +26,7 @@ function Layout() {
   return (
     <>
       {shouldShowNavbar && <Navbar />} {/* Conditionally render Navbar */}
+      <ToastContainer />
       <Routes>
         <Route
           path='/homepage'
@@ -48,7 +53,7 @@ function Layout() {
           element={<DetailedProduct />}
         />
         <Route
-          path='/comment'
+          path='/comment/:id'
           element={<Comment />}
         />
         <Route
@@ -58,6 +63,18 @@ function Layout() {
         <Route
           path='/myUploads'
           element={<MyUploads />}
+        />
+        <Route
+          path='/search'
+          element={<Search />}
+        />
+        <Route
+          path='/liked'
+          element={<LikedImages />}
+        />
+        <Route
+          path='/mybids'
+          element={<MyBids />}
         />
       </Routes>
     </>

@@ -1,5 +1,4 @@
 import React from 'react';
-import bgImg from '../../assets/images/bg.jpg';
 import withRouter from './withRouter';
 
 const ParticlesAuth = ({ children }) => {
@@ -12,7 +11,7 @@ const ParticlesAuth = ({ children }) => {
           className='auth-one-bg-position'
           id='auth-particles'
           style={{
-            backgroundImage: `url(${bgImg})`,
+            backgroundImage: `url(${'/assets/images/bg.jpg'})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             height: '65vh',

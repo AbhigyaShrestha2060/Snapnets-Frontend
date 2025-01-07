@@ -1,7 +1,7 @@
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState } from 'react';
-import logo from '../../assets/images/Logo.png';
+import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 
 const Navbar = () => {
   const [notifications] = useState([
@@ -15,6 +15,15 @@ const Navbar = () => {
     'Notification 8',
   ]);
 
+  const navigate = useNavigate(); // Initialize navigate hook
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
+    navigate('/login'); // Use navigate here to redirect to the login page
+  };
+
   return (
     <nav
       className='navbar navbar-expand-lg navbar-light'
@@ -26,7 +35,7 @@ const Navbar = () => {
           href='/'
           style={{ color: 'white' }}>
           <img
-            src={logo}
+            src={'/assets/images/Logo.png'}
             alt='Logo'
             style={{
               height: '75px',
@@ -64,7 +73,7 @@ const Navbar = () => {
               Home
             </a>
             <a
-              href='#'
+              href='liked'
               className='nav-link text-white mx-3'>
               <i
                 className='bi bi-heart'
@@ -72,7 +81,7 @@ const Navbar = () => {
               Liked
             </a>
             <a
-              href='#'
+              href='search'
               className='nav-link text-white mx-3'>
               <i
                 className='bi bi-search'
@@ -80,7 +89,7 @@ const Navbar = () => {
               Search
             </a>
             <a
-              href='#'
+              href='mybids'
               className='nav-link text-white mx-3'>
               <i
                 className='bi bi-currency-rupee'
@@ -88,7 +97,7 @@ const Navbar = () => {
               My Bids
             </a>
             <a
-              href='#'
+              href='boards'
               className='nav-link text-white mx-3'>
               <i
                 className='bi bi-collection'
@@ -148,15 +157,15 @@ const Navbar = () => {
               <li>
                 <a
                   className='dropdown-item'
-                  href='#'>
+                  href='/profile'>
                   View Profile
                 </a>
               </li>
               <li>
                 <a
                   className='dropdown-item'
-                  href='#'>
-                  Settings
+                  href='/myUploads'>
+                  My Uploads
                 </a>
               </li>
               <li>
@@ -165,7 +174,8 @@ const Navbar = () => {
               <li>
                 <a
                   className='dropdown-item'
-                  href='#'>
+                  href='#'
+                  onClick={handleLogout}>
                   Logout
                 </a>
               </li>

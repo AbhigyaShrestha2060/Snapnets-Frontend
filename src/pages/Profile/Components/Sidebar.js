@@ -1,26 +1,50 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Card, Image } from 'react-bootstrap';
-import img from '../../../assets/images/bg.jpg';
+import { useNavigate } from 'react-router-dom';
 
-const Sidebar = ({ setActiveComponent }) => {
+const Sidebar = ({ setActiveComponent, user }) => {
+  const navigate = useNavigate();
+  const [isGoogleUser, setIsGoogleUser] = React.useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+  const handleViewProfileDetails = () => {
+    navigate('/myUploads');
+  };
+
+  useEffect(() => {
+    setIsGoogleUser(user?.isGoogleUser);
+  }, [user]);
+
   return (
     <div
-      className='d-flex flex-column justify-item-center text-white'
-      style={{ width: '100%', maxWidth: '300px' }}>
+      className='d-flex flex-column text-white p-3'
+      style={{ width: '100%', maxWidth: '500px' }}>
       {/* Profile Section */}
       <Card
-        className='mb-4 text-center shadow rounded justify-item-center'
+        className='mb-4 text-center shadow rounded'
         style={{ border: 'none' }}>
         <Card.Body>
           <Image
-            src={img}
+            src={
+              user?.profilePicture
+                ? `http://localhost:5050/${user?.profilePicture}`
+                : '/assets/images/bg.jpg'
+            }
+            alt={user?.username}
             roundedCircle
             className='mb-3'
-            style={{ width: '150px', height: '150px' }}
+            style={{ width: '150px', height: '150px', objectFit: 'cover' }}
           />
-          <h5 className='text-dark'>@abc_123</h5>
-          <p className='text-muted mb-1'>Followers: 10 | Following: 99</p>
-          <p className='text-dark'>₹9,99,999</p>
+          <h5 className='text-dark'>@{user?.username || 'Guest'}</h5>
+          <p className='text-muted mb-1'>
+            Followers: {user?.followers || 0} | Following:{' '}
+            {user?.following || 0}
+          </p>
+          <p className='text-dark'>₹{user?.balance || '0'}</p>
         </Card.Body>
       </Card>
 
@@ -31,25 +55,25 @@ const Sidebar = ({ setActiveComponent }) => {
         <Card.Body className='p-2'>
           <Button
             variant='light'
-            className='text-start w-100 mb-2 rounded-pill'
+            className='text-center w-100 mb-2 rounded-pill'
             onClick={() => setActiveComponent('update-profile')}>
             Update Profile
           </Button>
           <Button
             variant='light'
-            className='text-start w-100 mb-2 rounded-pill'
+            className='text-center w-100 mb-2 rounded-pill'
             onClick={() => setActiveComponent('change-password')}>
             Change Password
           </Button>
           <Button
             variant='light'
-            className='text-start w-100 mb-2 rounded-pill'
-            onClick={() => setActiveComponent('view-profile-details')}>
-            View Profile Details
+            className='text-center w-100 mb-2 rounded-pill'
+            onClick={() => handleViewProfileDetails()}>
+            View My Uploads
           </Button>
           <Button
             variant='light'
-            className='text-start w-100 mb-2 rounded-pill'
+            className='text-center w-100 mb-2 rounded-pill'
             onClick={() => setActiveComponent('delete-account')}>
             Delete Account
           </Button>
@@ -59,7 +83,8 @@ const Sidebar = ({ setActiveComponent }) => {
       {/* Logout */}
       <Button
         variant='danger'
-        className='text-start mt-auto w-100 rounded-pill shadow'>
+        className='text-center mt-auto w-100 rounded-pill shadow'
+        onClick={handleLogout}>
         Logout
       </Button>
     </div>

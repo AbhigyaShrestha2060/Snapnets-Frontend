@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -13,7 +13,6 @@ import {
   Row,
 } from 'reactstrap';
 import { registerUserApi } from '../../api/api';
-import logoLight from '../../assets/images/Logo.png';
 import ParticlesAuth from '../../components/common/ParticlesAuth';
 
 const Register = () => {
@@ -25,6 +24,7 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+  const navigate = useNavigate();
 
   const [error, setError] = useState('');
 
@@ -76,7 +76,9 @@ const Register = () => {
         position: 'top-center',
         autoClose: 3000,
       });
-      window.location.href = '/login';
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
       setError('');
       // Redirect or show success message
     } catch (err) {
@@ -116,7 +118,7 @@ const Register = () => {
                       to='/'
                       className='d-inline-block auth-logo'>
                       <img
-                        src={logoLight}
+                        src={'/assets/images/Logo.png'}
                         alt=''
                         height='200'
                         style={{

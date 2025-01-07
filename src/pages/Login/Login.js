@@ -15,8 +15,8 @@ import {
 import ParticlesAuth from '../../components/common/ParticlesAuth';
 
 // Import images
-import { loginApi } from '../../api/api';
-import logoLight from '../../assets/images/Logo.png';
+import { GoogleLogin } from '@react-oauth/google';
+import { googleLoginApi, loginApi } from '../../api/api';
 
 const Login = () => {
   document.title = 'Login';
@@ -91,7 +91,7 @@ const Login = () => {
   return (
     <React.Fragment>
       <ParticlesAuth>
-        <div className='auth-page-content'>
+        <div className='auth-page-content pb-3'>
           <Container className='container-sm mx-auto'>
             <Row>
               <Col lg={12}>
@@ -114,7 +114,7 @@ const Login = () => {
                       to='/'
                       className='d-inline-block auth-logo'>
                       <img
-                        src={logoLight}
+                        src={'/assets/images/Logo.png'}
                         alt=''
                         height='200'
                         style={{
@@ -196,6 +196,34 @@ const Login = () => {
                             type='submit'>
                             Sign In
                           </Button>
+                        </div>
+                        <div className='mt-4'>
+                          <GoogleLogin
+                            className='w-full'
+                            onSuccess={(credentialResponse) => {
+                              const token = credentialResponse.credential;
+                              // const details = jwtDecode(token);\
+                              console.log(token);
+                              googleLoginApi({ token })
+                                .then((response) => {
+                                  localStorage.setItem(
+                                    'token',
+                                    response.data.token
+                                  );
+                                  localStorage.setItem(
+                                    'user',
+                                    JSON.stringify(response.data.user)
+                                  );
+                                  window.location.href = '/homepage';
+                                })
+                                .catch((err) => {
+                                  console.log(err);
+                                });
+                            }}
+                            onError={() => {
+                              console.log('Login Failed');
+                            }}
+                          />
                         </div>
                       </form>
                     </div>
