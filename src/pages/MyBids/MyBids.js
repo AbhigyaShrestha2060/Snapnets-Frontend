@@ -1,42 +1,226 @@
-// MyBids.jsx
-import React, { useEffect, useState } from 'react';
 import {
-  FaArrowRight,
-  FaCheckCircle,
-  FaClock,
-  FaExclamationTriangle,
-  FaFire,
-  FaGavel,
-  FaHeart,
-} from 'react-icons/fa';
+  ArrowForward as ArrowForwardIcon,
+  CheckCircle as CheckCircleIcon,
+  AccessTime as ClockIcon,
+  Close as CloseIcon,
+  CurrencyRupee,
+  Favorite as FavoriteIcon,
+  LocalFireDepartment as FireIcon,
+  Gavel as GavelIcon,
+  TrendingUp,
+  Warning as WarningIcon,
+} from '@mui/icons-material';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardMedia,
+  Chip,
+  Container,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  IconButton,
+  LinearProgress,
+  Paper,
+  Slide,
+  Stack,
+  styled,
+  TextField,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBidsApi } from '../../api/api';
-import AddBids from '../../components/common/AddBids';
+import { addBidApi, getBidsApi } from '../../api/api';
+
+// Styled Components
+const StyledCard = styled(Card)(({ theme }) => ({
+  height: '100%',
+  borderRadius: 16,
+  transition: 'all 0.3s ease-in-out',
+  border: 'none',
+  backgroundColor: '#ffffff',
+  overflow: 'hidden',
+  position: 'relative',
+  cursor: 'pointer',
+  '&:hover': {
+    transform: 'translateY(-8px)',
+    boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+    '& .card-media': {
+      transform: 'scale(1.05)',
+    },
+  },
+}));
+
+const StyledCardMedia = styled(CardMedia)(({ theme }) => ({
+  transition: 'transform 0.3s ease-in-out',
+  '&.card-media': {
+    transition: 'transform 0.3s ease-in-out',
+  },
+}));
+
+const StatusChip = styled(Chip)(({ theme, status }) => ({
+  borderRadius: 20,
+  height: 32,
+  backgroundColor: status === 'winning' ? '#e8f5e9' : '#ffebee',
+  color: status === 'winning' ? '#2e7d32' : '#d32f2f',
+  '& .MuiChip-icon': {
+    color: status === 'winning' ? '#2e7d32' : '#d32f2f',
+  },
+}));
+
+const BidButton = styled(Button)(({ theme, iswinning }) => ({
+  borderRadius: 8,
+  padding: '10px 20px',
+  backgroundColor: iswinning === 'true' ? '#2e7d32' : '#E60023',
+  color: '#ffffff',
+  '&:hover': {
+    backgroundColor: iswinning === 'true' ? '#1b5e20' : '#d32f2f',
+    transform: 'scale(1.02)',
+  },
+  transition: 'all 0.2s ease-in-out',
+}));
+
+const FloatingTimeChip = styled(Chip)(({ theme }) => ({
+  position: 'absolute',
+  top: 16,
+  left: 16,
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(4px)',
+  borderRadius: 20,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+  '& .MuiChip-icon': {
+    color: '#E60023',
+  },
+}));
+
+const LikesBadge = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  top: 16,
+  right: 16,
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  borderRadius: 20,
+  padding: '4px 12px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+  '& .MuiSvgIcon-root': {
+    color: '#E60023',
+    fontSize: 18,
+  },
+}));
+
+const StyledBidInfo = styled(Paper)(({ theme, iswinning }) => ({
+  padding: theme.spacing(2),
+  backgroundColor: iswinning
+    ? 'rgba(46, 125, 50, 0.05)'
+    : 'rgba(211, 47, 47, 0.05)',
+  borderRadius: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+}));
+
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return (
+    <Slide
+      direction='up'
+      ref={ref}
+      {...props}
+    />
+  );
+});
 
 const MyBids = () => {
   const [bids, setBids] = useState([]);
-  const [showModal, setShowModal] = useState(false);
+  const [showBidModal, setShowBidModal] = useState(false);
   const [selectedBid, setSelectedBid] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [bidAmount, setBidAmount] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
-    getBidsApi()
-      .then((res) => {
-        setBids(res.data.bids);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    fetchBids();
   }, []);
 
-  const handleOpenModal = (bid) => {
+  const fetchBids = async () => {
+    try {
+      setLoading(true);
+      const response = await getBidsApi();
+      setBids(response.data.bids);
+    } catch (error) {
+      console.error('Error fetching bids:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenModal = (bid, event) => {
+    event?.stopPropagation();
     setSelectedBid(bid);
-    setShowModal(true);
+    setBidAmount(bid.latestBidAmount.toString());
+    setShowBidModal(true);
+    setErrorMessage('');
+    setSuccessMessage('');
   };
 
   const handleCloseModal = () => {
-    setShowModal(false);
+    setShowBidModal(false);
     setSelectedBid(null);
+    setBidAmount('');
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
+
+  const handleBidSubmit = async () => {
+    if (!bidAmount || isNaN(bidAmount)) {
+      setErrorMessage('Please enter a valid bid amount.');
+      return;
+    }
+
+    if (parseFloat(bidAmount) <= selectedBid.latestBidAmount) {
+      setErrorMessage('Your bid must be higher than the current bid.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const bidData = {
+        imageId: selectedBid.image?._id,
+        bidAmount: parseFloat(bidAmount),
+      };
+
+      await addBidApi(bidData);
+      setSuccessMessage('Bid submitted successfully!');
+      setErrorMessage('');
+
+      // Refresh bids after successful submission
+      await fetchBids();
+
+      setTimeout(() => {
+        handleCloseModal();
+      }, 1500);
+    } catch (error) {
+      console.error('Error submitting bid:', error);
+      setErrorMessage(
+        error.response?.data?.message ||
+          'An error occurred while placing your bid.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getBidStatus = (latestBid, userBid) => {
@@ -45,34 +229,17 @@ const MyBids = () => {
 
     if (latestBidAmount > userBidAmount) {
       return {
-        containerClass: 'bg-danger bg-opacity-10',
-        textClass: 'text-danger',
-        icon: <FaExclamationTriangle className='me-2' />,
+        icon: <WarningIcon />,
+        label: 'Outbid',
+        status: 'losing',
         message: 'Your bid is lower than the current bid',
       };
     }
     return {
-      containerClass: 'bg-success bg-opacity-10',
-      textClass: 'text-success',
-      icon: <FaCheckCircle className='me-2' />,
+      icon: <CheckCircleIcon />,
+      label: 'Winning',
+      status: 'winning',
       message: 'Your bid is currently winning',
-    };
-  };
-
-  const handleNavigation = (id) => {
-    navigate(`/detailedProduct/${id}`);
-  };
-
-  const getImageStyles = (isPortrait) => {
-    const baseStyles = {
-      width: '100%',
-      objectFit: 'cover',
-    };
-
-    return {
-      ...baseStyles,
-      height: isPortrait ? '300px' : '200px',
-      objectPosition: 'center',
     };
   };
 
@@ -80,6 +247,7 @@ const MyBids = () => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'NPR',
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -101,172 +269,532 @@ const MyBids = () => {
     });
   };
 
-  return (
-    <>
-      <div className='container-fluid p-4'>
-        <div className='row g-4'>
-          {/* Featured/Trending Card */}
-          <div className='col-12 col-md-6 col-lg-3'>
-            <div className='card h-100 border-0 rounded-4 bg-light shadow-sm'>
-              <div className='card-body p-3'>
-                <div className='d-flex justify-content-between align-items-center mb-2'>
-                  <div className='d-flex align-items-center'>
-                    <FaFire className='text-warning me-2' />
-                    <span className='fw-bold'>Trending</span>
-                  </div>
-                  <span className='badge bg-danger px-2 py-1'>
-                    <FaHeart className='me-1' />
-                    25k
-                  </span>
-                </div>
-                <img
-                  src={'/assets/images/bg.jpg'}
-                  alt='trending'
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '600px',
-                    objectFit: 'cover',
-                  }}
-                />
+  const renderBidModal = () => (
+    <Dialog
+      open={showBidModal}
+      TransitionComponent={Transition}
+      keepMounted
+      onClose={handleCloseModal}
+      maxWidth='sm'
+      fullWidth
+      PaperProps={{
+        elevation: 5,
+        sx: {
+          borderRadius: 2,
+          bgcolor: theme.palette.background.paper,
+          backdropFilter: 'blur(10px)',
+        },
+      }}>
+      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', alignItems: 'center' }}>
+        <Stack
+          direction='row'
+          alignItems='center'
+          spacing={1}>
+          <GavelIcon sx={{ color: '#E60023' }} />
+          <Typography variant='h6'>Place Your Bid</Typography>
+        </Stack>
+        <IconButton
+          onClick={handleCloseModal}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: theme.palette.grey[500],
+            transition: 'all 0.2s',
+            '&:hover': {
+              transform: 'rotate(90deg)',
+              color: theme.palette.error.main,
+            },
+          }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-                <h6 className='mb-2'>Golden Art</h6>
-                <div className='d-flex justify-content-between small mb-2'>
-                  <span>Current Bid: {formatCurrency(45000)}</span>
-                </div>
-                <div className='d-flex justify-content-between small mb-3'>
-                  <span>Item Left: 5</span>
-                  <div className='d-flex align-items-center text-warning'>
-                    <FaClock className='me-1' />
-                    <span>10:10</span>
-                  </div>
-                </div>
-                <button
-                  className='btn btn-danger w-100 rounded-3'
-                  onClick={() =>
-                    handleOpenModal({
-                      image: {
-                        _id: 'trending-001',
-                        imageTitle: 'Golden Art',
-                      },
-                      latestBidAmount: 45000,
-                    })
-                  }>
-                  Add Your Bid
-                </button>
-              </div>
-            </div>
-          </div>
+      <Divider />
 
-          {/* Gallery Grid */}
-          {bids.map((item, index) => {
-            const bidStatus = getBidStatus(
-              item.latestBidAmount,
-              item.userLatestBidAmount
-            );
+      <DialogContent sx={{ pt: 3 }}>
+        <Box sx={{ mb: 3 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              bgcolor: 'rgba(230, 0, 35, 0.05)',
+              borderRadius: 2,
+            }}>
+            <Stack spacing={2}>
+              <Box>
+                <Typography
+                  variant='subtitle2'
+                  color='text.secondary'>
+                  Item
+                </Typography>
+                <Typography variant='h6'>
+                  {selectedBid?.image?.imageTitle || 'N/A'}
+                </Typography>
+              </Box>
 
-            const isWinning =
-              Number(item.latestBidAmount) <= Number(item.userLatestBidAmount);
+              <Box>
+                <Typography
+                  variant='subtitle2'
+                  color='text.secondary'
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TrendingUp fontSize='small' />
+                  Current Bid
+                </Typography>
+                <Typography
+                  variant='h5'
+                  color='primary'
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontWeight: 'medium',
+                    color: '#E60023',
+                  }}>
+                  <CurrencyRupee fontSize='small' />
+                  {selectedBid
+                    ? formatCurrency(selectedBid.latestBidAmount)
+                        .replace('NPR', '')
+                        .trim()
+                    : '0'}
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+        </Box>
 
-            return (
-              <div
-                key={index}
-                className='col-12 col-md-6 col-lg-3'>
-                <div
-                  className='card h-100 border-0 rounded-4 shadow-sm hover-lift'
-                  onClick={() => handleNavigation(item.image?._id)}
-                  style={{ cursor: 'pointer' }}>
-                  <div className='position-relative'>
-                    <img
-                      src={
-                        !item.image
-                          ? '/api/placeholder/400/320'
-                          : `http://localhost:5050/images/${item.image.image}`
-                      }
-                      className='card-img-top rounded-4'
-                      alt={item.image?.imageTitle || 'Bid Image'}
-                      style={getImageStyles(item.image?.isPortrait)}
-                    />
-                    <div className='position-absolute top-0 start-0 m-3'>
-                      <div className='badge bg-light text-dark px-3 py-2 rounded-pill d-flex align-items-center'>
-                        <FaClock className='text-danger me-1' />
-                        <span>10:10</span>
-                      </div>
-                    </div>
-                    <div className='position-absolute top-0 end-0 m-3'>
-                      <span className='badge bg-light text-danger px-2 py-2 rounded-pill'>
-                        <FaHeart /> {item.image?.totalLikes || 0}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className='card-body p-3'>
-                    <h6 className='mb-2'>
-                      {item.image?.imageTitle || `Bid #${item.bidAmount}`}
-                    </h6>
-                    <div className='small mb-3'>
-                      <p className='text-muted mb-1'>
-                        {item.image?.imageDescription ||
-                          'Image information not available'}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`p-2 rounded-3 mb-3 ${bidStatus.containerClass}`}>
-                      <div className='d-flex align-items-center small mb-2'>
-                        {bidStatus.icon}
-                        <span className={bidStatus.textClass}>
-                          {bidStatus.message}
-                        </span>
-                      </div>
-                      <div className='d-flex justify-content-between small mb-1'>
-                        <span>Latest Bid:</span>
-                        <span className='fw-bold'>
-                          {formatCurrency(item.latestBidAmount)}
-                        </span>
-                      </div>
-                      <div className='d-flex justify-content-between small'>
-                        <span>Your Bid:</span>
-                        <span className={`fw-bold ${bidStatus.textClass}`}>
-                          {formatCurrency(item.userLatestBidAmount)}
-                        </span>
-                      </div>
-                      <div className='d-flex justify-content-between small mt-1'>
-                        <span className='text-muted'>Bid Time:</span>
-                        <span>{formatDate(item.userLatestBidDate)}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      className={`btn ${
-                        !isWinning ? 'btn-danger' : 'btn-success'
-                      } w-100 rounded-3 d-flex align-items-center justify-content-center`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenModal(item);
-                      }}>
-                      <FaGavel className='me-2' />
-                      {!isWinning ? 'Increase Bid' : 'Currently Winning'}
-                      {!isWinning && <FaArrowRight className='ms-2' />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Add Bids Modal */}
-      {showModal && (
-        <AddBids
-          show={showModal}
-          onClose={handleCloseModal}
-          bid={selectedBid}
-          currentBid={selectedBid?.latestBidAmount}
-          itemTitle={selectedBid?.image?.imageTitle}
+        <TextField
+          autoFocus
+          fullWidth
+          label='Your Bid Amount'
+          variant='outlined'
+          type='number'
+          value={bidAmount}
+          onChange={(e) => {
+            setBidAmount(e.target.value);
+            setErrorMessage('');
+          }}
+          placeholder={
+            selectedBid
+              ? `Enter amount higher than ${formatCurrency(
+                  selectedBid.latestBidAmount
+                )}`
+              : ''
+          }
+          helperText='Enter amount in NPR'
+          InputProps={{
+            startAdornment: (
+              <CurrencyRupee sx={{ color: 'text.secondary', mr: 1 }} />
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+            },
+          }}
         />
-      )}
-    </>
+
+        <Box sx={{ mt: 2 }}>
+          {errorMessage && (
+            <Alert
+              severity='error'
+              sx={{
+                borderRadius: 2,
+                animation: 'slideIn 0.2s ease-out',
+              }}>
+              {errorMessage}
+            </Alert>
+          )}
+          {successMessage && (
+            <Alert
+              severity='success'
+              sx={{
+                borderRadius: 2,
+                animation: 'slideIn 0.2s ease-out',
+              }}>
+              {successMessage}
+            </Alert>
+          )}
+        </Box>
+      </DialogContent>
+
+      <Box sx={{ p: 2, px: 3 }}>
+        <Stack
+          direction='row'
+          spacing={2}
+          justifyContent='flex-end'>
+          <Button
+            onClick={handleCloseModal}
+            variant='outlined'
+            color='inherit'
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              minWidth: 100,
+              borderColor: '#E60023',
+              color: '#E60023',
+              '&:hover': {
+                borderColor: '#d32f2f',
+                backgroundColor: 'rgba(230, 0, 35, 0.04)',
+              },
+            }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleBidSubmit}
+            variant='contained'
+            disabled={isSubmitting}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              minWidth: 100,
+              backgroundColor: '#E60023',
+              '&:hover': {
+                backgroundColor: '#d32f2f',
+              },
+              '&:disabled': {
+                backgroundColor: '#ff8080',
+              },
+            }}>
+            {isSubmitting ? 'Submitting...' : 'Place Bid'}
+          </Button>
+        </Stack>
+      </Box>
+    </Dialog>
+  );
+
+  return (
+    <Container
+      maxWidth='xl'
+      sx={{ py: 4 }}>
+      <Box
+        component={motion.div}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}>
+        {/* Header */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 4,
+          }}>
+          <Typography
+            variant='h4'
+            fontWeight='bold'
+            sx={{
+              background: '#E60023',
+              backgroundImage: 'linear-gradient(45deg, #E60023, #ff1a1a)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
+            }}>
+            My Bids
+          </Typography>
+          <Chip
+            icon={<GavelIcon />}
+            label={`${bids.length} Active Bids`}
+            sx={{
+              backgroundColor: '#E60023',
+              color: '#ffffff',
+              '& .MuiChip-icon': { color: '#ffffff' },
+            }}
+          />
+        </Box>
+
+        {/* Loading State */}
+        {loading ? (
+          <Box sx={{ width: '100%', mt: 2 }}>
+            <LinearProgress
+              sx={{
+                borderRadius: 1,
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: '#E60023',
+                },
+              }}
+            />
+          </Box>
+        ) : (
+          <Grid
+            container
+            spacing={3}>
+            {/* Trending Card */}
+            <Grid
+              item
+              xs={12}
+              sm={6}
+              md={3}>
+              <StyledCard>
+                <Box sx={{ position: 'relative' }}>
+                  <StyledCardMedia
+                    component='img'
+                    height='240'
+                    image='/assets/images/bg.jpg'
+                    alt='Trending Item'
+                    className='card-media'
+                  />
+                  <FloatingTimeChip
+                    icon={<FireIcon />}
+                    label='Trending'
+                  />
+                  <LikesBadge>
+                    <FavoriteIcon />
+                    <Typography
+                      variant='body2'
+                      fontWeight='medium'>
+                      25k
+                    </Typography>
+                  </LikesBadge>
+                </Box>
+                <CardContent>
+                  <Typography
+                    variant='h6'
+                    gutterBottom>
+                    Golden Art
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant='body2'
+                      color='text.secondary'
+                      gutterBottom>
+                      Current Bid
+                    </Typography>
+                    <Typography
+                      variant='h6'
+                      color='text.primary'
+                      fontWeight='bold'>
+                      {formatCurrency(45000)}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 3,
+                    }}>
+                    <Chip
+                      size='small'
+                      label='5 items left'
+                      sx={{
+                        backgroundColor: '#f5f5f5',
+                        fontWeight: 'medium',
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        color: '#E60023',
+                      }}>
+                      <ClockIcon fontSize='small' />
+                      <Typography
+                        variant='body2'
+                        fontWeight='medium'>
+                        10:10
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <BidButton
+                    fullWidth
+                    variant='contained'
+                    iswinning='false'
+                    startIcon={<GavelIcon />}
+                    onClick={(e) =>
+                      handleOpenModal(
+                        {
+                          image: {
+                            _id: 'trending-001',
+                            imageTitle: 'Golden Art',
+                          },
+                          latestBidAmount: 45000,
+                        },
+                        e
+                      )
+                    }>
+                    Place Bid
+                  </BidButton>
+                </CardContent>
+              </StyledCard>
+            </Grid>
+
+            {/* Bid Cards */}
+            <AnimatePresence>
+              {bids.map((item, index) => {
+                const bidStatus = getBidStatus(
+                  item.latestBidAmount,
+                  item.userLatestBidAmount
+                );
+                const isWinning =
+                  Number(item.latestBidAmount) <=
+                  Number(item.userLatestBidAmount);
+
+                return (
+                  <Grid
+                    item
+                    xs={12}
+                    sm={6}
+                    md={3}
+                    key={index}
+                    component={motion.div}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}>
+                    <StyledCard
+                      onClick={() =>
+                        navigate(`/detailedProduct/${item.image?._id}`)
+                      }>
+                      <Box sx={{ position: 'relative' }}>
+                        <StyledCardMedia
+                          component='img'
+                          height={item.image?.isPortrait ? '320' : '240'}
+                          image={
+                            !item.image
+                              ? '/api/placeholder/400/320'
+                              : `http://localhost:5050/images/${item.image.image}`
+                          }
+                          alt={item.image?.imageTitle || 'Bid Image'}
+                          className='card-media'
+                        />
+                        <FloatingTimeChip
+                          icon={<ClockIcon />}
+                          label='10:10'
+                        />
+                        <LikesBadge>
+                          <FavoriteIcon />
+                          <Typography
+                            variant='body2'
+                            fontWeight='medium'>
+                            {item.image?.totalLikes || 0}
+                          </Typography>
+                        </LikesBadge>
+                      </Box>
+                      <CardContent>
+                        <Typography
+                          variant='h6'
+                          gutterBottom>
+                          {item.image?.imageTitle || `Bid #${item.bidAmount}`}
+                        </Typography>
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                          sx={{
+                            mb: 2,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}>
+                          {item.image?.imageDescription ||
+                            'Image information not available'}
+                        </Typography>
+
+                        <StyledBidInfo iswinning={isWinning}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              mb: 2,
+                            }}>
+                            {bidStatus.icon}
+                            <Typography
+                              variant='body2'
+                              color={isWinning ? 'success.main' : 'error.main'}>
+                              {bidStatus.message}
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              mb: 1,
+                            }}>
+                            <Typography
+                              variant='body2'
+                              color='text.secondary'>
+                              Latest Bid:
+                            </Typography>
+                            <Typography
+                              variant='body2'
+                              fontWeight='bold'>
+                              {formatCurrency(item.latestBidAmount)}
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              mb: 1,
+                            }}>
+                            <Typography
+                              variant='body2'
+                              color='text.secondary'>
+                              Your Bid:
+                            </Typography>
+                            <Typography
+                              variant='body2'
+                              fontWeight='bold'
+                              color={isWinning ? 'success.main' : 'error.main'}>
+                              {formatCurrency(item.userLatestBidAmount)}
+                            </Typography>
+                          </Box>
+                          <Divider sx={{ my: 1 }} />
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                            }}>
+                            <Typography
+                              variant='caption'
+                              color='text.secondary'>
+                              Bid Time:
+                            </Typography>
+                            <Typography variant='caption'>
+                              {formatDate(item.userLatestBidDate)}
+                            </Typography>
+                          </Box>
+                        </StyledBidInfo>
+
+                        <BidButton
+                          fullWidth
+                          variant='contained'
+                          iswinning={isWinning.toString()}
+                          startIcon={<GavelIcon />}
+                          endIcon={!isWinning && <ArrowForwardIcon />}
+                          onClick={(e) => handleOpenModal(item, e)}>
+                          {isWinning ? 'Currently Winning' : 'Increase Bid'}
+                        </BidButton>
+                      </CardContent>
+                    </StyledCard>
+                  </Grid>
+                );
+              })}
+            </AnimatePresence>
+          </Grid>
+        )}
+      </Box>
+
+      {/* Render Bid Modal */}
+      {renderBidModal()}
+
+      <style>
+        {`
+          @keyframes slideIn {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}
+      </style>
+    </Container>
   );
 };
 

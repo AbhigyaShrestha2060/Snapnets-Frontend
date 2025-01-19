@@ -29,6 +29,10 @@ export const changePassword = (data) =>
 export const updateProfilePicture = (data) =>
   Api.put('/user/editProfilePicture', data, config);
 
+//Otp
+export const sendOtpApi = (data) => Api.post('/user/sendOtp', data);
+export const verifyOtpApi = (data) => Api.post('/user/verifyOtp', data);
+
 // login with google
 export const googleLoginApi = (data) => Api.post('/user/googleLogin', data);
 // Image Api
@@ -52,6 +56,9 @@ export const editImage = (id, data) =>
   Api.put(`/image/updateImage/${id}`, data, config);
 export const deleteImage = (id) => Api.delete(`/image/delete/${id}`, config);
 
+export const getImagesByUserId = (id) =>
+  Api.get(`/image/getAllImageOfAUserbyId/${id}`, jsonConfig);
+
 // Comment Api
 export const addCommentApi = (data) =>
   Api.post('/comment/addComment', data, config);
@@ -64,3 +71,18 @@ export const addBidApi = (data) => Api.post('/bid/addBid', data, config);
 export const getBidsApi = () => Api.get(`/bid/userBids`, jsonConfig);
 export const getImageswithBidInformation = () =>
   Api.get(`/bid/userImagesWithbidInformation`, jsonConfig);
+
+// Boards
+export const createBoard = (data) =>
+  Api.post('/board/createBoard', data, jsonConfig);
+
+export const addImageToBoard = (data) =>
+  Api.post('/board/addImageToBoard', data, jsonConfig);
+
+export const getAllBoardsOfAUser = () =>
+  Api.get('/board/getAllBoardsOfAUser', jsonConfig);
+export const getBoardById = (id) => Api.get(`/board/viewBoard/${id}`, config);
+export const deleteBoard = (id) =>
+  Api.delete(`/board/deleteBoard/${id}`, config);
+export const deleteImageFromBoard = (data) =>
+  Api.delete('/board/removeImageFromBoard', data, jsonConfig);

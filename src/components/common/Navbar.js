@@ -1,7 +1,34 @@
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import {
+  Collections,
+  CurrencyRupee,
+  ExitToApp,
+  Favorite,
+  Home,
+  Menu as MenuIcon,
+  Notifications,
+  Person,
+  Search,
+} from '@mui/icons-material';
+import {
+  AppBar,
+  Badge,
+  Box,
+  Button,
+  Divider,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Toolbar,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [notifications] = useState([
@@ -15,175 +42,288 @@ const Navbar = () => {
     'Notification 8',
   ]);
 
-  const navigate = useNavigate(); // Initialize navigate hook
+  const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // State for mobile drawer
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // State for dropdown menus
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
+  const [profileAnchor, setProfileAnchor] = useState(null);
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-
-    navigate('/login'); // Use navigate here to redirect to the login page
+    navigate('/login');
+    handleProfileMenuClose();
   };
 
+  // Notification menu handlers
+  const handleNotificationMenuOpen = (event) => {
+    setNotificationAnchor(event.currentTarget);
+  };
+
+  const handleNotificationMenuClose = () => {
+    setNotificationAnchor(null);
+  };
+
+  // Profile menu handlers
+  const handleProfileMenuOpen = (event) => {
+    setProfileAnchor(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setProfileAnchor(null);
+  };
+
+  const navItems = [
+    { text: 'Home', icon: <Home />, path: '/' },
+    { text: 'Liked', icon: <Favorite />, path: '/liked' },
+    { text: 'Search', icon: <Search />, path: '/search' },
+    { text: 'My Bids', icon: <CurrencyRupee />, path: '/mybids' },
+    { text: 'Boards', icon: <Collections />, path: '/boards' },
+  ];
+
+  const drawer = (
+    <Box
+      onClick={handleDrawerToggle}
+      sx={{
+        textAlign: 'center',
+        bgcolor: '#E60023',
+        height: '100%',
+        color: 'white',
+      }}>
+      <Box sx={{ p: 2 }}>
+        <img
+          src='/assets/images/Logo.png'
+          alt='Logo'
+          style={{
+            height: '75px',
+            width: '75px',
+            backgroundColor: 'white',
+            borderRadius: '5px',
+            padding: '5px',
+          }}
+        />
+      </Box>
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
+      <List>
+        {navItems.map((item) => (
+          <ListItem
+            key={item.text}
+            button
+            component='a'
+            href={item.path}
+            sx={{
+              color: 'white',
+              position: 'relative',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: '16px', // Matches ListItem padding
+                right: '16px',
+                height: '2px',
+                backgroundColor: 'white',
+                transform:
+                  location.pathname === item.path ? 'scaleX(1)' : 'scaleX(0)',
+                transition: 'transform 0.3s ease',
+              },
+              ...(location.pathname === item.path && {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              }),
+            }}>
+            <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>
+            <ListItemText
+              primary={item.text}
+              sx={{
+                '& .MuiTypography-root': {
+                  fontWeight:
+                    location.pathname === item.path ? 'bold' : 'normal',
+                },
+              }}
+            />
+            {location.pathname === item.path && (
+              <Box
+                sx={{
+                  width: 4,
+                  height: '100%',
+                  position: 'absolute',
+                  right: 0,
+                  backgroundColor: '#E60023',
+                }}
+              />
+            )}
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+
   return (
-    <nav
-      className='navbar navbar-expand-lg navbar-light'
-      style={{ backgroundColor: '#E60023', padding: '0.5rem' }}>
-      <div className='container-fluid'>
-        {/* Logo on the Left */}
-        <a
-          className='navbar-brand d-flex align-items-center'
-          href='/'
-          style={{ color: 'white' }}>
-          <img
-            src={'/assets/images/Logo.png'}
-            alt='Logo'
-            style={{
-              height: '75px',
-              width: '75px',
-              backgroundColor: 'white',
-              borderRadius: '5px',
-              padding: '5px',
-            }}
-          />
-        </a>
+    <>
+      <AppBar
+        position='sticky'
+        sx={{ bgcolor: '#E60023', top: 0 }}>
+        <Toolbar>
+          {isMobile && (
+            <IconButton
+              color='inherit'
+              edge='start'
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}>
+              <MenuIcon />
+            </IconButton>
+          )}
 
-        {/* Toggle Button for Small Screens */}
-        <button
-          className='navbar-toggler'
-          type='button'
-          data-bs-toggle='collapse'
-          data-bs-target='#navbarNav'
-          aria-controls='navbarNav'
-          aria-expanded='false'
-          aria-label='Toggle navigation'>
-          <span className='navbar-toggler-icon'></span>
-        </button>
+          {/* Logo */}
+          <Box
+            component='a'
+            href='/'
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              textDecoration: 'none',
+              color: 'inherit',
+            }}>
+            <img
+              src='/assets/images/Logo.png'
+              alt='Logo'
+              style={{
+                height: '80px',
+                width: '80px',
+                backgroundColor: 'white',
+                borderRadius: '5px',
+                padding: '5px',
+              }}
+            />
+          </Box>
 
-        {/* Centered Navigation Items */}
-        <div
-          className='collapse navbar-collapse'
-          id='navbarNav'>
-          <div className='navbar-nav mx-auto'>
-            <a
-              href='/'
-              className='nav-link text-white mx-3'>
-              <i
-                className='bi bi-house'
-                style={{ fontSize: '1.5rem' }}></i>{' '}
-              Home
-            </a>
-            <a
-              href='liked'
-              className='nav-link text-white mx-3'>
-              <i
-                className='bi bi-heart'
-                style={{ fontSize: '1.5rem' }}></i>{' '}
-              Liked
-            </a>
-            <a
-              href='search'
-              className='nav-link text-white mx-3'>
-              <i
-                className='bi bi-search'
-                style={{ fontSize: '1.5rem' }}></i>{' '}
-              Search
-            </a>
-            <a
-              href='mybids'
-              className='nav-link text-white mx-3'>
-              <i
-                className='bi bi-currency-rupee'
-                style={{ fontSize: '1.5rem' }}></i>{' '}
-              My Bids
-            </a>
-            <a
-              href='boards'
-              className='nav-link text-white mx-3'>
-              <i
-                className='bi bi-collection'
-                style={{ fontSize: '1.5rem' }}></i>{' '}
-              Boards
-            </a>
-          </div>
-        </div>
-
-        {/* Notification and Profile Icons on the Right */}
-        <div className='d-flex align-items-center'>
-          {/* Notification Dropdown */}
-          <div className='dropdown'>
-            <a
-              href='#'
-              className='nav-link text-white mx-3 dropdown-toggle'
-              id='notificationDropdown'
-              role='button'
-              data-bs-toggle='dropdown'
-              aria-expanded='false'>
-              <i
-                className='bi bi-bell'
-                style={{ fontSize: '1.5rem' }}></i>
-            </a>
-            <ul
-              className='dropdown-menu dropdown-menu-end'
-              aria-labelledby='notificationDropdown'
-              style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              {notifications.map((notification, index) => (
-                <li key={index}>
-                  <a
-                    className='dropdown-item'
-                    href='#'>
-                    {notification}
-                  </a>
-                </li>
+          {/* Navigation Items - Hidden on mobile */}
+          {!isMobile && (
+            <Box
+              sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center' }}>
+              {navItems.map((item) => (
+                <Button
+                  key={item.text}
+                  color='inherit'
+                  startIcon={item.icon}
+                  href={item.path}
+                  sx={{
+                    mx: 1,
+                    position: 'relative',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '3px',
+                      backgroundColor: 'white',
+                      transform:
+                        location.pathname === item.path
+                          ? 'scaleX(1)'
+                          : 'scaleX(0)',
+                      transition: 'transform 0.3s ease',
+                    },
+                    ...(location.pathname === item.path && {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      fontWeight: 'bold',
+                    }),
+                  }}>
+                  {item.text}
+                </Button>
               ))}
-            </ul>
-          </div>
+            </Box>
+          )}
 
-          {/* Profile Dropdown */}
-          <div className='dropdown'>
-            <a
-              href='#'
-              className='nav-link text-white mx-3 dropdown-toggle'
-              id='profileDropdown'
-              role='button'
-              data-bs-toggle='dropdown'
-              aria-expanded='false'>
-              <i
-                className='bi bi-person'
-                style={{ fontSize: '1.5rem' }}></i>
-            </a>
-            <ul
-              className='dropdown-menu dropdown-menu-end'
-              aria-labelledby='profileDropdown'>
-              <li>
-                <a
-                  className='dropdown-item'
-                  href='/profile'>
-                  View Profile
-                </a>
-              </li>
-              <li>
-                <a
-                  className='dropdown-item'
-                  href='/myUploads'>
-                  My Uploads
-                </a>
-              </li>
-              <li>
-                <hr className='dropdown-divider' />
-              </li>
-              <li>
-                <a
-                  className='dropdown-item'
-                  href='#'
-                  onClick={handleLogout}>
-                  Logout
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </nav>
+          {/* Right side icons */}
+          <Box sx={{ ml: 'auto' }}>
+            <IconButton
+              color='inherit'
+              onClick={handleNotificationMenuOpen}>
+              <Badge
+                badgeContent={notifications.length}
+                color='error'>
+                <Notifications />
+              </Badge>
+            </IconButton>
+
+            <IconButton
+              color='inherit'
+              onClick={handleProfileMenuOpen}
+              sx={{ ml: 1 }}>
+              <Person />
+            </IconButton>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        variant='temporary'
+        anchor='left'
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better mobile performance
+        }}>
+        {drawer}
+      </Drawer>
+
+      {/* Notifications Menu */}
+      <Menu
+        anchorEl={notificationAnchor}
+        open={Boolean(notificationAnchor)}
+        onClose={handleNotificationMenuClose}
+        PaperProps={{
+          style: {
+            maxHeight: 300,
+          },
+        }}>
+        {notifications.map((notification, index) => (
+          <MenuItem
+            key={index}
+            onClick={handleNotificationMenuClose}>
+            {notification}
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* Profile Menu */}
+      <Menu
+        anchorEl={profileAnchor}
+        open={Boolean(profileAnchor)}
+        onClose={handleProfileMenuClose}>
+        <MenuItem
+          component='a'
+          href='/profile'>
+          View Profile
+        </MenuItem>
+        <MenuItem
+          component='a'
+          href='/myUploads'>
+          My Uploads
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <ExitToApp fontSize='small' />
+          </ListItemIcon>
+          Logout
+        </MenuItem>
+      </Menu>
+    </>
   );
 };
 

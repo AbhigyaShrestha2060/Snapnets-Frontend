@@ -10,13 +10,22 @@ import {
   Container,
   Input,
   Label,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Row,
 } from 'reactstrap';
 import ParticlesAuth from '../../components/common/ParticlesAuth';
 
 // Import images
 import { GoogleLogin } from '@react-oauth/google';
-import { googleLoginApi, loginApi } from '../../api/api';
+import {
+  googleLoginApi,
+  loginApi,
+  sendOtpApi,
+  verifyOtpApi,
+} from '../../api/api';
 
 const Login = () => {
   document.title = 'Login';
@@ -27,7 +36,62 @@ const Login = () => {
   });
 
   const [error, setError] = useState('');
+
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [emailForReset, setEmailForReset] = useState('');
+  const [otp, setOtp] = useState('');
+  const [isOtpSent, setIsOtpSent] = useState(false);
   const navigate = useNavigate();
+
+  const toggleForgotModal = () => setIsForgotModalOpen(!isForgotModalOpen);
+
+  const handleForgotEmailSubmit = async () => {
+    if (!emailForReset) {
+      toast.error('Email is required', {
+        position: 'top-center',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    try {
+      await sendOtpApi({ email: emailForReset });
+      toast.success('OTP sent to your email!', {
+        position: 'top-center',
+        autoClose: 3000,
+      });
+      setIsOtpSent(true);
+    } catch (err) {
+      toast.error('Failed to send OTP. Please try again.', {
+        position: 'top-center',
+        autoClose: 3000,
+      });
+    }
+  };
+  const handleOtpSubmit = async () => {
+    if (!otp) {
+      toast.error('Please enter the OTP', {
+        position: 'top-center',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    try {
+      await verifyOtpApi({ email: emailForReset, otp });
+      toast.success('OTP verified! Please reset your password.', {
+        position: 'top-center',
+        autoClose: 3000,
+      });
+      setIsForgotModalOpen(false);
+      setIsOtpSent(false);
+    } catch (err) {
+      toast.error('Invalid OTP. Please try again.', {
+        position: 'top-center',
+        autoClose: 3000,
+      });
+    }
+  };
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -75,7 +139,7 @@ const Login = () => {
 
       // Wait for 3 seconds before navigating
       setTimeout(() => {
-        navigate('/homepage');
+        window.location.href = '/homepage';
       }, 3000);
     } catch (err) {
       const errorMessage =
@@ -162,7 +226,7 @@ const Login = () => {
                         <div className='mb-3'>
                           <div className='float-end'>
                             <Link
-                              to='/auth-pass-reset-basic'
+                              onClick={toggleForgotModal}
                               className='text-muted'>
                               Forgot password?
                             </Link>
@@ -246,6 +310,62 @@ const Login = () => {
           </Container>
         </div>
       </ParticlesAuth>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        isOpen={isForgotModalOpen}
+        toggle={toggleForgotModal}>
+        <ModalHeader toggle={toggleForgotModal}>
+          {isOtpSent ? 'Enter OTP' : 'Forgot Password'}
+        </ModalHeader>
+        <ModalBody>
+          {isOtpSent ? (
+            <div>
+              <Label htmlFor='otp'>OTP</Label>
+              <Input
+                type='text'
+                id='otp'
+                placeholder='Enter the OTP'
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                required
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor='emailForReset'>Email</Label>
+              <Input
+                type='email'
+                id='emailForReset'
+                placeholder='Enter your email'
+                value={emailForReset}
+                onChange={(e) => setEmailForReset(e.target.value)}
+                required
+              />
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          {isOtpSent ? (
+            <Button
+              color='primary'
+              onClick={handleOtpSubmit}>
+              Submit OTP
+            </Button>
+          ) : (
+            <Button
+              color='primary'
+              onClick={handleForgotEmailSubmit}>
+              Send OTP
+            </Button>
+          )}
+          <Button
+            color='secondary'
+            onClick={toggleForgotModal}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
       <ToastContainer />
     </React.Fragment>
   );

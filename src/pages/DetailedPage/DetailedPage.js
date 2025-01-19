@@ -1,8 +1,31 @@
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { Favorite, FavoriteBorder } from '@mui/icons-material';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Grid,
+  IconButton,
+  Paper,
+  Skeleton,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import {
+  Clock,
+  DollarSign,
+  MessageCircle,
+  Package,
+  TrendingUp,
+} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getImageById } from '../../api/api';
+import { getImageById, likeImageApi } from '../../api/api';
 import AddBids from '../../components/common/AddBids';
 
 const DetailedProduct = () => {
@@ -13,7 +36,8 @@ const DetailedProduct = () => {
   const [textareaInput, setTextareaInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isModalVisible, setModalVisible] = useState(false); // State for modal visibility
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [liked, setLiked] = useState(false);
 
   // Fetch product details using API
   useEffect(() => {
@@ -38,6 +62,7 @@ const DetailedProduct = () => {
           date: new Date(uploadDate).toLocaleDateString(),
           likes: totalLikes,
           creator: uploadedBy.username,
+          creatorPicture: uploadedBy.profilePicture,
           rating: 4,
           price: 'Rs 5000',
           highestBid: 'Rs 10,000',
@@ -61,7 +86,7 @@ const DetailedProduct = () => {
 
   const handleTextareaSubmit = () => {
     if (textareaInput.trim()) {
-      console.log('Textarea content submitted:', textareaInput);
+      console.log('Comment submitted:', textareaInput);
       setTextareaInput('');
     }
   };
@@ -69,126 +94,312 @@ const DetailedProduct = () => {
   const handleViewComment = () => {
     navigate(`/comment/${id}`);
   };
+  const toggleLike = async (e) => {
+    e.stopPropagation(); // Prevent image click navigation
+    try {
+      await likeImageApi(id);
+      setLiked((prev) => !prev);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
 
   const handleBidSubmit = ({ imageId, bidAmount }) => {
     console.log('Bid Submitted:', { imageId, bidAmount });
-    // Add API call or logic to handle bid submission
     setModalVisible(false);
   };
 
+  if (loading) {
+    return (
+      <Box sx={{ maxWidth: 'lg', mx: 'auto', p: 4 }}>
+        <Grid
+          container
+          spacing={4}>
+          <Grid
+            item
+            xs={12}
+            md={6}>
+            <Skeleton
+              variant='rectangular'
+              height={400}
+            />
+          </Grid>
+          <Grid
+            item
+            xs={12}
+            md={6}>
+            <Skeleton
+              variant='text'
+              height={60}
+            />
+            <Skeleton
+              variant='text'
+              height={40}
+            />
+            <Skeleton
+              variant='text'
+              height={40}
+            />
+            <Skeleton
+              variant='rectangular'
+              height={200}
+            />
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ maxWidth: 'lg', mx: 'auto', p: 4 }}>
+        <Alert severity='error'>{error}</Alert>
+      </Box>
+    );
+  }
+
   return (
-    <div className='container mt-5'>
-      <div className='row align-items-center'>
-        {/* Left Side: Image */}
-        <div className='col-md-5 d-flex flex-column align-items-center'>
-          {loading ? (
-            <div
-              className='spinner-border text-danger'
-              role='status'>
-              <span className='visually-hidden'>Loading...</span>
-            </div>
-          ) : error ? (
-            <div className='text-danger'>{error}</div>
-          ) : (
-            <img
+    <Box sx={{ maxWidth: 'lg', mx: 'auto', p: 4 }}>
+      <Grid
+        container
+        spacing={4}>
+        {/* Left Side - Image and Bid Button */}
+        <Grid
+          item
+          xs={12}
+          md={6}>
+          <Paper
+            elevation={3}
+            sx={{ p: 2 }}>
+            <Box
+              component='img'
               src={`http://localhost:5050/images/${product.image}`}
               alt={product.title}
-              className='rounded'
-              style={{
-                width: product.isPortrait ? '300px' : '500px',
-                height: product.isPortrait ? '500px' : '300px',
+              sx={{
+                width: '100%',
+                height: product.isPortrait ? 600 : 400,
                 objectFit: 'cover',
+                borderRadius: 1,
+                mb: 2,
               }}
             />
-          )}
-          <button
-            className='btn btn-danger mt-3 w-75'
-            onClick={() => setModalVisible(true)}>
-            Place Bid
-          </button>
-        </div>
+          </Paper>
+        </Grid>
 
-        {/* Right Side: Details */}
-        <div className='col-md-7'>
-          <div className='card p-4'>
-            <div className='d-flex justify-content-between mb-3'>
-              <p>
-                <i className='bi bi-heart-fill text-danger'></i> {product.likes}{' '}
-                people liked this
-              </p>
-              <a
-                onClick={handleViewComment}
-                className='text-decoration-none'>
-                <i className='bi bi-chat-left-text'></i> View Comments
-              </a>
-            </div>
+        {/* Right Side - Product Details */}
+        <Grid
+          item
+          xs={12}
+          md={6}>
+          <Card elevation={3}>
+            <CardContent>
+              <Typography
+                variant='h4'
+                sx={{ mb: 1 }}>
+                {product.title}
+              </Typography>
+              <Typography
+                variant='body2'
+                sx={{ mb: 3 }}>
+                {product.description}
+              </Typography>
+              <Typography
+                variant='subtitle1'
+                sx={{
+                  mb: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1, // Adjust the gap between items
+                }}>
+                <Avatar
+                  src={`http://localhost:5050/${product.creatorPicture}`}
+                  alt={product.creator}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                  }}
+                />
+                <Chip
+                  label={product.creator || 'Unknown'}
+                  variant='outlined'
+                  size='small'
+                />
+              </Typography>
 
-            <h5 className='card-title mb-3'>{product.title}</h5>
-            <p className='card-text mb-2'>
-              Creator: {product.creator} &#x24B8;
-            </p>
-            <p className='card-text mb-2'>Published Date: {product.date}</p>
-            <div className='mb-3'>
-              {[...Array(5)].map((_, i) => (
-                <i
-                  key={i}
-                  className={`bi ${
-                    i < product.rating ? 'bi-star-fill' : 'bi-star'
-                  } text-warning`}></i>
-              ))}
-            </div>
+              <Typography
+                variant='body2'
+                sx={{ mb: 2 }}>
+                Upload Date : {product.date}
+              </Typography>
 
-            <div className='row mb-3'>
-              <div className='col'>
-                <p className='mb-1'>Price</p>
-                <h6>{product.price}</h6>
-              </div>
-              <div className='col'>
-                <p className='mb-1'>Highest Bid</p>
-                <h6>{product.highestBid}</h6>
-              </div>
-              <div className='col'>
-                <p className='mb-1'>Stock Left</p>
-                <h6>{product.stockLeft}</h6>
-              </div>
-              <div className='col'>
-                <p className='mb-1'>Auction End</p>
-                <h6>{product.auctionEnd}</h6>
-              </div>
-            </div>
+              {/* Rating */}
+              <Box sx={{ mb: 2 }}>
+                <Stack
+                  direction='row'
+                  spacing={1}
+                  alignItems='center'>
+                  <IconButton
+                    onClick={(e) => toggleLike(e)}
+                    color={liked ? 'error' : 'default'}
+                    sx={{
+                      transition: 'transform 0.2s',
+                      '&:hover': { transform: 'scale(1.1)' },
+                    }}>
+                    {liked ? <Favorite /> : <FavoriteBorder />}
+                  </IconButton>
+                  <Typography variant='body2'>{product.likes} likes</Typography>
+                </Stack>
+              </Box>
 
-            <p className='card-text'>Description</p>
-            <p>{product.description}</p>
+              <Button
+                variant='contained'
+                fullWidth
+                sx={{
+                  bgcolor: 'error.main',
+                  '&:hover': { bgcolor: 'error.dark' },
+                }}
+                onClick={() => setModalVisible(true)}>
+                Place Bid
+              </Button>
 
-            {/* Textarea with Submit Button Inside */}
-            <div className='position-relative'>
-              <textarea
-                className='form-control pe-5'
-                placeholder='Type Something...'
-                rows='2'
-                value={textareaInput}
-                onChange={handleTextareaChange}
-                style={{ paddingRight: '75px' }}></textarea>
-              {textareaInput && (
-                <button
-                  className='btn btn-primary position-absolute top-50 end-0 translate-middle-y me-2'
-                  onClick={handleTextareaSubmit}>
-                  Submit
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+              <Divider sx={{ my: 3 }} />
+
+              {/* Stats Grid */}
+              <Grid
+                container
+                spacing={2}
+                sx={{ mb: 3 }}>
+                <Grid
+                  item
+                  xs={6}
+                  sm={3}>
+                  <Paper
+                    elevation={1}
+                    sx={{ p: 1.5, textAlign: 'center' }}>
+                    <DollarSign
+                      size={20}
+                      style={{ margin: '0 auto 8px' }}
+                    />
+                    <Typography
+                      variant='caption'
+                      display='block'>
+                      Price
+                    </Typography>
+                    <Typography variant='subtitle2'>{product.price}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid
+                  item
+                  xs={6}
+                  sm={3}>
+                  <Paper
+                    elevation={1}
+                    sx={{ p: 1.5, textAlign: 'center' }}>
+                    <TrendingUp
+                      size={20}
+                      style={{ margin: '0 auto 8px' }}
+                    />
+                    <Typography
+                      variant='caption'
+                      display='block'>
+                      Highest Bid
+                    </Typography>
+                    <Typography variant='subtitle2'>
+                      {product.highestBid}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid
+                  item
+                  xs={6}
+                  sm={3}>
+                  <Paper
+                    elevation={1}
+                    sx={{ p: 1.5, textAlign: 'center' }}>
+                    <Package
+                      size={20}
+                      style={{ margin: '0 auto 8px' }}
+                    />
+                    <Typography
+                      variant='caption'
+                      display='block'>
+                      Stock Left
+                    </Typography>
+                    <Typography variant='subtitle2'>
+                      {product.stockLeft}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid
+                  item
+                  xs={6}
+                  sm={3}>
+                  <Paper
+                    elevation={1}
+                    sx={{ p: 1.5, textAlign: 'center' }}>
+                    <Clock
+                      size={20}
+                      style={{ margin: '0 auto 8px' }}
+                    />
+                    <Typography
+                      variant='caption'
+                      display='block'>
+                      Auction End
+                    </Typography>
+                    <Typography variant='subtitle2'>
+                      {product.auctionEnd}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ textAlign: 'end' }}>
+                <Button
+                  startIcon={<MessageCircle />}
+                  variant='text'
+                  onClick={handleViewComment}>
+                  View Comments
+                </Button>
+              </Box>
+
+              {/* Comment Input */}
+              <Box sx={{ position: 'relative' }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  placeholder='Add a comment...'
+                  value={textareaInput}
+                  onChange={handleTextareaChange}
+                  variant='outlined'
+                />
+                {textareaInput && (
+                  <Button
+                    variant='contained'
+                    sx={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 8,
+                    }}
+                    onClick={handleTextareaSubmit}>
+                    Submit
+                  </Button>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {/* Bid Modal */}
       <AddBids
         show={isModalVisible}
-        handleClose={() => setModalVisible(false)}
-        handleBidSubmit={handleBidSubmit}
-        imageId={id}
+        onClose={() => setModalVisible(false)}
+        bid={{ image: { _id: id } }}
+        currentBid={parseFloat(product.highestBid?.replace(/[^0-9]/g, '')) || 0}
+        itemTitle={product.title}
       />
-    </div>
+    </Box>
   );
 };
 

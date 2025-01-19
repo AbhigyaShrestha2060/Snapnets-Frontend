@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import './App.css';
 import Navbar from './components/common/Navbar';
+import BoardDetailedPage from './pages/BoardDetailedPage/BoardDetailedPage';
 import Board from './pages/Boards/Boards';
 import Comment from './pages/Comment/Comment';
 import DetailedProduct from './pages/DetailedPage/DetailedPage';
@@ -13,6 +14,7 @@ import MyUploads from './pages/MyUploads/MyUploads';
 import Profile from './pages/Profile/Profile';
 import Register from './pages/Register/Register';
 import Search from './pages/Search/Search';
+import UserImages from './pages/UserImages/UserImages';
 
 function Layout() {
   const location = useLocation(); // useLocation is now inside BrowserRouter
@@ -75,6 +77,14 @@ function Layout() {
         <Route
           path='/mybids'
           element={<MyBids />}
+        />
+        <Route
+          path='/boardDetailed/:id'
+          element={<BoardDetailedPage />}
+        />
+        <Route
+          path='/userUploads/:id'
+          element={<UserImages />}
         />
       </Routes>
     </>
