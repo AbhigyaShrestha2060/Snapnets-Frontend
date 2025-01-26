@@ -21,6 +21,7 @@
     "https": "^1.0.0",
     "lucide-react": "^0.469.0",
     "mui": "^0.0.1",
+    "query-string": "^9.1.1",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.7",
     "react-dom": "^19.0.0",

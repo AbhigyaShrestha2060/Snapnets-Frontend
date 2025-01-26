@@ -1,30 +1,33 @@
-import React, { useState } from 'react';
+import { Box, CircularProgress } from '@mui/material';
+import React, { useEffect, useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { FaCamera } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { updateProfilePicture, updateUserApi } from '../../../api/api';
 
 const UpdateProfile = ({ user }) => {
-  const [formData, setFormData] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
-    phoneNumber: user?.phoneNumber || '',
-  });
-
-  const [profilePicture, setProfilePicture] = useState(
-    user?.profilePicture || ''
-  ); // State for profile picture
+  const [formData, setFormData] = useState(null);
+  const [profilePicture, setProfilePicture] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Handle input changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || '',
+        email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
+      });
+      setProfilePicture(user.profilePicture || '');
+    }
+  }, [user]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Frontend validation
   const validate = () => {
     const newErrors = {};
     if (
@@ -39,7 +42,6 @@ const UpdateProfile = ({ user }) => {
     return newErrors;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
@@ -53,30 +55,27 @@ const UpdateProfile = ({ user }) => {
 
     try {
       await updateUserApi(formData);
-      toast.success('Profile updated successfully!', {});
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error(error);
-      toast.error('An error occurred while updating the profile.', {});
+      toast.error('An error occurred while updating the profile.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle image file input change and upload immediately
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate image
       if (file.type.startsWith('image/')) {
         const formData = new FormData();
         formData.append('newImage', file);
-
         setIsUploading(true);
 
         try {
-          const response = await updateProfilePicture(formData); // Call the API to update the profile picture
-          const newProfilePicture = response.data.newProfilePicture; // Assuming the new image URL is returned
-          setProfilePicture(newProfilePicture); // Update the state with the new image URL
+          const response = await updateProfilePicture(formData);
+          const newProfilePicture = response.data.newProfilePicture;
+          setProfilePicture(newProfilePicture);
           toast.success('Profile picture updated successfully!');
         } catch (error) {
           console.error(error);
@@ -90,9 +89,22 @@ const UpdateProfile = ({ user }) => {
     }
   };
 
+  if (!formData || !user) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '400px',
+        }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <div className='d-flex flex-column flex-md-row bg-white p-4 rounded shadow-sm'>
-      {/* Form Section */}
       <div className='flex-grow-1 col-12 col-md-6 order-2 order-md-1'>
         <h3 className='mb-4'>Update Profile</h3>
         <Form onSubmit={handleSubmit}>
@@ -142,19 +154,31 @@ const UpdateProfile = ({ user }) => {
         </Form>
       </div>
 
-      {/* Profile Image Section */}
       <div className='d-flex flex-column align-items-center justify-content-center ms-md-5 col-12 col-md-6 order-1 order-md-2'>
         <div className='position-relative'>
-          <img
-            src={
-              user?.profilePicture
-                ? `http://localhost:5050/${user?.profilePicture}`
-                : '/assets/images/bg.jpg'
-            }
-            alt={user?.username}
-            className='rounded-circle'
-            style={{ width: '250px', height: '250px', objectFit: 'cover' }}
-          />
+          {isUploading ? (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: 250,
+                height: 250,
+              }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <img
+              src={
+                user?.profilePicture
+                  ? `http://localhost:5050/${user.profilePicture}`
+                  : '/assets/images/bg.jpg'
+              }
+              alt={user.username}
+              className='rounded-circle'
+              style={{ width: '250px', height: '250px', objectFit: 'cover' }}
+            />
+          )}
           <div
             className='position-absolute bg-danger rounded-circle d-flex align-items-center justify-content-center'
             style={{

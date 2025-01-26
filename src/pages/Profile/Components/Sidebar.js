@@ -1,5 +1,11 @@
+// theme.js
+import { createTheme } from '@mui/material/styles';
+
+// Sidebar.jsx
 import {
   AddCircleOutline,
+  ArrowDownward,
+  ArrowUpward,
   DeleteOutline,
   ExitToApp,
   Lock,
@@ -8,22 +14,51 @@ import {
   Wallet,
 } from '@mui/icons-material';
 import {
+  Alert,
   alpha,
   Avatar,
   Box,
   Button,
   Card,
   CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   List,
   ListItem,
+  Paper,
+  Snackbar,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
   Typography,
   useTheme,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBalance, initializeKhalti } from '../../../api/api';
+import FollowModal from '../../../components/common/FollowModal';
+export const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#E60023',
+      light: '#ff1a1a',
+      dark: '#cc0000',
+      contrastText: '#ffffff',
+    },
+  },
+  shape: {
+    borderRadius: 8,
+  },
+});
 
 const StyledCard = styled(Card)(({ theme }) => ({
   background: 'transparent',
@@ -94,9 +129,89 @@ const StatsBox = styled(Box)(({ theme }) => ({
   },
 }));
 
+const TransactionRow = styled(TableRow)(({ theme, type }) => ({
+  '& .MuiTableCell-root': {
+    color:
+      type === 'Deposit'
+        ? theme.palette.success.main
+        : theme.palette.error.main,
+  },
+  '&:last-child td, &:last-child th': {
+    border: 0,
+  },
+}));
+
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    borderRadius: theme.shape.borderRadius * 2,
+    padding: theme.spacing(2),
+  },
+}));
+
 const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const [openModal, setOpenModal] = useState(false);
+  const [openTransactions, setOpenTransactions] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
+  const [balanceData, setBalanceData] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+  const [followData, setFollowData] = useState(null);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
+
+  useEffect(() => {
+    fetchBalance();
+    fetchFollowData(user);
+  }, [user]);
+
+  const fetchBalance = async () => {
+    try {
+      const response = await getBalance();
+      if (response.data.success) {
+        setBalanceData(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to fetch balance',
+        severity: 'error',
+      });
+    }
+  };
+  const fetchFollowData = async (user) => {
+    await setFollowData(user?.data);
+  };
+
+  const handleAddBalance = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+
+    try {
+      const response = await initializeKhalti({
+        totalPrice: amount,
+        website_url: 'http://localhost:3000',
+      });
+      if (response.data.success) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      console.error('Error adding balance:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to add balance',
+        severity: 'error',
+      });
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -117,7 +232,6 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
   return (
     <Box
       sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Profile Section */}
       <StyledCard elevation={0}>
         <CardContent>
           <Stack
@@ -140,11 +254,11 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
               </Typography>
 
               <StatsBox>
-                <div>
+                <div onClick={() => setShowFollowersModal(true)}>
                   <Typography
                     variant='h6'
                     color='primary.main'>
-                    {user?.followers || 0}
+                    {user?.followersCount || 0}
                   </Typography>
                   <Typography
                     variant='body2'
@@ -156,11 +270,11 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
                   orientation='vertical'
                   flexItem
                 />
-                <div>
+                <div onClick={() => setShowFollowingModal(true)}>
                   <Typography
                     variant='h6'
                     color='primary.main'>
-                    {user?.following || 0}
+                    {user?.followingCount || 0}
                   </Typography>
                   <Typography
                     variant='body2'
@@ -173,11 +287,17 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
               <Card
                 sx={{
                   mt: 3,
-                  bgcolor: theme.palette.primary.main,
+                  bgcolor: '#E60023',
                   color: 'white',
                   p: 2,
                   borderRadius: 3,
-                }}>
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                  },
+                }}
+                onClick={() => setOpenTransactions(true)}>
                 <Stack
                   direction='row'
                   alignItems='center'
@@ -185,7 +305,7 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
                   <Box>
                     <Typography variant='body2'>Balance</Typography>
                     <Typography variant='h5'>
-                      ₹{user?.balance || '0'}
+                      ₹{balanceData?.balance || '0'}
                     </Typography>
                   </Box>
                   <Wallet sx={{ fontSize: 32, opacity: 0.8 }} />
@@ -196,11 +316,12 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
                 variant='contained'
                 startIcon={<AddCircleOutline />}
                 fullWidth
+                onClick={() => setOpenModal(true)}
                 sx={{
                   mt: 2,
                   borderRadius: 3,
                   py: 1.5,
-                  background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                  background: 'linear-gradient(45deg, #E60023, #ff1a1a)',
                 }}>
                 Add Money
               </Button>
@@ -209,7 +330,6 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
         </CardContent>
       </StyledCard>
 
-      {/* Navigation Links */}
       <List sx={{ mt: 3, mb: 2 }}>
         <ListItem
           disablePadding
@@ -277,6 +397,175 @@ const Sidebar = ({ setActiveComponent, user, isGoogleUser, onClose }) => {
           Logout
         </Button>
       </Box>
+
+      <FollowModal
+        open={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        title='Followers'
+        data={followData?.followers}
+      />
+
+      <FollowModal
+        open={showFollowingModal}
+        onClose={() => setShowFollowingModal(false)}
+        title='Following'
+        data={followData?.following}
+      />
+
+      {/* Add Money Modal */}
+      <StyledDialog
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        maxWidth='xs'
+        fullWidth>
+        <DialogTitle>
+          <Typography
+            variant='h6'
+            fontWeight='bold'
+            color='primary'>
+            Add Balance
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin='dense'
+            label='Enter Amount (₹)'
+            type='number'
+            fullWidth
+            value={amount}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              setError('');
+            }}
+            error={Boolean(error)}
+            helperText={error}
+            InputProps={{
+              inputProps: { min: 0 },
+              startAdornment: (
+                <Typography
+                  color='text.secondary'
+                  sx={{ mr: 1 }}>
+                  ₹
+                </Typography>
+              ),
+            }}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenModal(false);
+              setError('');
+              setAmount('');
+            }}
+            color='inherit'>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddBalance}
+            variant='contained'
+            sx={{
+              background: 'linear-gradient(45deg, #E60023, #ff1a1a)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #cc0000, #e60000)',
+              },
+            }}>
+            Add
+          </Button>
+        </DialogActions>
+      </StyledDialog>
+
+      {/* Transactions Modal */}
+      <Dialog
+        open={openTransactions}
+        onClose={() => setOpenTransactions(false)}
+        maxWidth='md'
+        fullWidth>
+        <DialogTitle>
+          <Stack
+            direction='row'
+            justifyContent='space-between'
+            alignItems='center'>
+            <Typography
+              variant='h6'
+              fontWeight='bold'>
+              Transaction History
+            </Typography>
+            <Typography
+              variant='h6'
+              color='primary'
+              fontWeight='bold'>
+              Balance: ₹{balanceData?.balance || '0'}
+            </Typography>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <TableContainer
+            component={Paper}
+            sx={{ maxHeight: 440 }}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell align='right'>Amount</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {balanceData?.transactions.map((transaction, index) => (
+                  <TransactionRow
+                    key={index}
+                    type={transaction.type}>
+                    <TableCell>{transaction.transactionDate}</TableCell>
+                    <TableCell
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {transaction.type === 'Deposit' ? (
+                        <ArrowUpward
+                          color='success'
+                          fontSize='small'
+                        />
+                      ) : (
+                        <ArrowDownward
+                          color='error'
+                          fontSize='small'
+                        />
+                      )}
+                      {transaction.type}
+                    </TableCell>
+                    <TableCell align='right'>
+                      {transaction.type === 'Deposit' ? '+' : ''}₹
+                      {Math.abs(transaction.amount)}
+                    </TableCell>
+                  </TransactionRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setOpenTransactions(false)}
+            color='inherit'>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

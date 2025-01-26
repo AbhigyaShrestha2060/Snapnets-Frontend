@@ -26,6 +26,8 @@ import PropTypes from 'prop-types';
 import React, { useState } from 'react';
 import { addBidApi } from '../../api/api';
 
+const PRIMARY_COLOR = '#E60023';
+
 const Transition = React.forwardRef(function Transition(props, ref) {
   return (
     <Slide
@@ -53,7 +55,6 @@ const AddBids = ({ show, onClose, bid, currentBid, itemTitle }) => {
   const handleBidChange = (e) => {
     const value = e.target.value;
     setBidAmount(value);
-    // Clear error message when user starts typing
     if (errorMessage) setErrorMessage('');
   };
 
@@ -113,7 +114,7 @@ const AddBids = ({ show, onClose, bid, currentBid, itemTitle }) => {
           direction='row'
           alignItems='center'
           spacing={1}>
-          <Gavel sx={{ color: theme.palette.primary.main }} />
+          <Gavel sx={{ color: PRIMARY_COLOR }} />
           <Typography variant='h6'>Place Your Bid</Typography>
         </Stack>
         <IconButton
@@ -141,7 +142,7 @@ const AddBids = ({ show, onClose, bid, currentBid, itemTitle }) => {
             elevation={0}
             sx={{
               p: 2,
-              bgcolor: alpha(theme.palette.primary.main, 0.05),
+              bgcolor: alpha(PRIMARY_COLOR, 0.05),
               borderRadius: 2,
             }}>
             <Stack spacing={2}>
@@ -164,11 +165,11 @@ const AddBids = ({ show, onClose, bid, currentBid, itemTitle }) => {
                 </Typography>
                 <Typography
                   variant='h5'
-                  color='primary'
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
                     fontWeight: 'medium',
+                    color: PRIMARY_COLOR,
                   }}>
                   <CurrencyRupee fontSize='small' />
                   {formatCurrency(currentBid).replace('NPR', '').trim()}
@@ -196,6 +197,12 @@ const AddBids = ({ show, onClose, bid, currentBid, itemTitle }) => {
           sx={{
             '& .MuiOutlinedInput-root': {
               borderRadius: 2,
+              '&.Mui-focused fieldset': {
+                borderColor: PRIMARY_COLOR,
+              },
+            },
+            '& .MuiInputLabel-root.Mui-focused': {
+              color: PRIMARY_COLOR,
             },
           }}
         />
@@ -228,11 +235,16 @@ const AddBids = ({ show, onClose, bid, currentBid, itemTitle }) => {
         <Button
           onClick={onClose}
           variant='outlined'
-          color='inherit'
           sx={{
             borderRadius: 2,
             textTransform: 'none',
             minWidth: 100,
+            borderColor: alpha(PRIMARY_COLOR, 0.5),
+            color: PRIMARY_COLOR,
+            '&:hover': {
+              borderColor: PRIMARY_COLOR,
+              bgcolor: alpha(PRIMARY_COLOR, 0.05),
+            },
           }}>
           Cancel
         </Button>
@@ -244,6 +256,10 @@ const AddBids = ({ show, onClose, bid, currentBid, itemTitle }) => {
             borderRadius: 2,
             textTransform: 'none',
             minWidth: 100,
+            bgcolor: PRIMARY_COLOR,
+            '&:hover': {
+              bgcolor: alpha(PRIMARY_COLOR, 0.9),
+            },
             position: 'relative',
             overflow: 'hidden',
             '&::after': {

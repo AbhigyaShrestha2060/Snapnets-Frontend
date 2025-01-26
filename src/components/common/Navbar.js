@@ -1,4 +1,7 @@
 import {
+  NotificationsNone as BellIcon,
+  CheckCircleOutline as CheckIcon,
+  Close as CloseIcon,
   Collections,
   CurrencyRupee,
   ExitToApp,
@@ -8,6 +11,7 @@ import {
   Notifications,
   Person,
   Search,
+  AccessTime as TimeIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -23,65 +27,173 @@ import {
   ListItemText,
   Menu,
   MenuItem,
+  Tab,
+  Tabs,
   Toolbar,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  getNotification,
+  markAllNotificationAsRead,
+  markNotificationAsRead,
+} from '../../api/api';
+const NotificationMenu = ({
+  anchorEl,
+  open,
+  onClose,
+  notifications = [],
+  onMarkAsRead,
+}) => {
+  const [filter, setFilter] = React.useState(0);
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const filteredNotifications = React.useMemo(() => {
+    if (filter === 1) return notifications.filter((n) => !n.read);
+    if (filter === 2) return notifications.filter((n) => n.read);
+    return notifications;
+  }, [notifications, filter]);
+
+  return (
+    <Menu
+      anchorEl={anchorEl}
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        sx: {
+          width: 400,
+          maxHeight: 'none',
+          maxWidth: 'none',
+          p: 0,
+        },
+      }}>
+      <Box
+        sx={{
+          p: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+        <Typography variant='h6'>Notifications</Typography>
+        <IconButton
+          size='small'
+          onClick={onClose}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      <Tabs
+        value={filter}
+        onChange={(_, val) => setFilter(val)}
+        sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Tab label='All' />
+        <Tab label='Unread' />
+        <Tab label='Read' />
+      </Tabs>
+
+      <List sx={{ maxHeight: 400, overflow: 'auto', p: 0 }}>
+        {filteredNotifications.length === 0 ? (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <BellIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+            <Typography color='text.secondary'>No notifications</Typography>
+          </Box>
+        ) : (
+          filteredNotifications.map((notification, idx) => (
+            <React.Fragment key={notification._id}>
+              {idx > 0 && <Divider />}
+              <ListItem
+                sx={{
+                  bgcolor: notification.read
+                    ? 'background.paper'
+                    : 'action.hover',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}>
+                <ListItemText
+                  primary={
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mb: 0.5,
+                      }}>
+                      <Typography variant='subtitle2'>
+                        {notification.title || 'Notification'}
+                      </Typography>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                          variant='caption'
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                          }}>
+                          <TimeIcon fontSize='inherit' />
+                          {formatTime(notification.createdAt || new Date())}
+                        </Typography>
+                        {!notification.read && (
+                          <IconButton
+                            size='small'
+                            onClick={() => onMarkAsRead(notification._id)}
+                            sx={{ color: 'primary.main' }}>
+                            <CheckIcon fontSize='small' />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </Box>
+                  }
+                  secondary={notification.message}
+                />
+              </ListItem>
+            </React.Fragment>
+          ))
+        )}
+      </List>
+
+      {filteredNotifications.length > 0 && (
+        <Box
+          sx={{
+            p: 2,
+            borderTop: 1,
+            borderColor: 'divider',
+            textAlign: 'center',
+          }}>
+          <Button
+            onClick={() => onMarkAsRead('all')}
+            size='small'>
+            Mark all as read
+          </Button>
+        </Box>
+      )}
+    </Menu>
+  );
+};
 
 const Navbar = () => {
-  const [notifications] = useState([
-    'New bid on your post',
-    'Your post was liked',
-    'You have a new follower',
-    'Notification 4',
-    'Notification 5',
-    'Notification 6',
-    'Notification 7',
-    'Notification 8',
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
+  const [profileAnchor, setProfileAnchor] = useState(null);
 
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // State for mobile drawer
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  // State for dropdown menus
-  const [notificationAnchor, setNotificationAnchor] = useState(null);
-  const [profileAnchor, setProfileAnchor] = useState(null);
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-    handleProfileMenuClose();
-  };
-
-  // Notification menu handlers
-  const handleNotificationMenuOpen = (event) => {
-    setNotificationAnchor(event.currentTarget);
-  };
-
-  const handleNotificationMenuClose = () => {
-    setNotificationAnchor(null);
-  };
-
-  // Profile menu handlers
-  const handleProfileMenuOpen = (event) => {
-    setProfileAnchor(event.currentTarget);
-  };
-
-  const handleProfileMenuClose = () => {
-    setProfileAnchor(null);
-  };
 
   const navItems = [
     { text: 'Home', icon: <Home />, path: '/' },
@@ -90,6 +202,60 @@ const Navbar = () => {
     { text: 'My Bids', icon: <CurrencyRupee />, path: '/mybids' },
     { text: 'Boards', icon: <Collections />, path: '/boards' },
   ];
+
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+    handleProfileMenuClose();
+  };
+
+  const handleNotificationMenuOpen = (event) =>
+    setNotificationAnchor(event.currentTarget);
+  const handleNotificationMenuClose = () => setNotificationAnchor(null);
+
+  const handleProfileMenuOpen = (event) =>
+    setProfileAnchor(event.currentTarget);
+  const handleProfileMenuClose = () => setProfileAnchor(null);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      if (id === 'all') {
+        await markAllNotificationAsRead();
+        setNotifications(notifications.map((n) => ({ ...n, read: true })));
+        setUnreadCount(0);
+      } else {
+        await markNotificationAsRead(id);
+        setNotifications(
+          notifications.map((n) => (n._id === id ? { ...n, read: true } : n))
+        );
+        setUnreadCount((prev) => prev - 1);
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await getNotification();
+        if (response.data.success) {
+          setNotifications(response.data.notifications);
+          const unread = response.data.notifications.filter(
+            (n) => !n.read
+          ).length;
+          setUnreadCount(unread);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
 
   const drawer = (
     <Box
@@ -124,14 +290,12 @@ const Navbar = () => {
             sx={{
               color: 'white',
               position: 'relative',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              },
+              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
               '&::after': {
                 content: '""',
                 position: 'absolute',
                 bottom: 0,
-                left: '16px', // Matches ListItem padding
+                left: '16px',
                 right: '16px',
                 height: '2px',
                 backgroundColor: 'white',
@@ -153,17 +317,6 @@ const Navbar = () => {
                 },
               }}
             />
-            {location.pathname === item.path && (
-              <Box
-                sx={{
-                  width: 4,
-                  height: '100%',
-                  position: 'absolute',
-                  right: 0,
-                  backgroundColor: '#E60023',
-                }}
-              />
-            )}
           </ListItem>
         ))}
       </List>
@@ -186,7 +339,6 @@ const Navbar = () => {
             </IconButton>
           )}
 
-          {/* Logo */}
           <Box
             component='a'
             href='/'
@@ -209,7 +361,6 @@ const Navbar = () => {
             />
           </Box>
 
-          {/* Navigation Items - Hidden on mobile */}
           {!isMobile && (
             <Box
               sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center' }}>
@@ -247,13 +398,12 @@ const Navbar = () => {
             </Box>
           )}
 
-          {/* Right side icons */}
           <Box sx={{ ml: 'auto' }}>
             <IconButton
               color='inherit'
               onClick={handleNotificationMenuOpen}>
               <Badge
-                badgeContent={notifications.length}
+                badgeContent={unreadCount}
                 color='error'>
                 <Notifications />
               </Badge>
@@ -269,38 +419,23 @@ const Navbar = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Mobile Drawer */}
       <Drawer
         variant='temporary'
         anchor='left'
         open={mobileOpen}
         onClose={handleDrawerToggle}
-        ModalProps={{
-          keepMounted: true, // Better mobile performance
-        }}>
+        ModalProps={{ keepMounted: true }}>
         {drawer}
       </Drawer>
 
-      {/* Notifications Menu */}
-      <Menu
+      <NotificationMenu
         anchorEl={notificationAnchor}
         open={Boolean(notificationAnchor)}
         onClose={handleNotificationMenuClose}
-        PaperProps={{
-          style: {
-            maxHeight: 300,
-          },
-        }}>
-        {notifications.map((notification, index) => (
-          <MenuItem
-            key={index}
-            onClick={handleNotificationMenuClose}>
-            {notification}
-          </MenuItem>
-        ))}
-      </Menu>
+        notifications={notifications}
+        onMarkAsRead={handleMarkAsRead}
+      />
 
-      {/* Profile Menu */}
       <Menu
         anchorEl={profileAnchor}
         open={Boolean(profileAnchor)}
@@ -314,6 +449,11 @@ const Navbar = () => {
           component='a'
           href='/myUploads'>
           My Uploads
+        </MenuItem>
+        <MenuItem
+          component='a'
+          href='/helpandsupport'>
+          Help and Support
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>

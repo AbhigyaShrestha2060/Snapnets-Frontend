@@ -5,7 +5,6 @@ import {
   Close as CloseIcon,
   CurrencyRupee,
   Favorite as FavoriteIcon,
-  LocalFireDepartment as FireIcon,
   Gavel as GavelIcon,
   TrendingUp,
   Warning as WarningIcon,
@@ -462,6 +461,29 @@ const MyBids = () => {
     </Dialog>
   );
 
+  const fmttDate = (dateString) => {
+    console.log(dateString); // Debugging output
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+
+    if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    } else {
+      // Format older dates as "DD MMM YYYY, HH:mm AM/PM"
+      const options = {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      };
+      return date.toLocaleString('en-US', options);
+    }
+  };
+
   return (
     <Container
       maxWidth='xl'
@@ -518,107 +540,6 @@ const MyBids = () => {
           <Grid
             container
             spacing={3}>
-            {/* Trending Card */}
-            <Grid
-              item
-              xs={12}
-              sm={6}
-              md={3}>
-              <StyledCard>
-                <Box sx={{ position: 'relative' }}>
-                  <StyledCardMedia
-                    component='img'
-                    height='240'
-                    image='/assets/images/bg.jpg'
-                    alt='Trending Item'
-                    className='card-media'
-                  />
-                  <FloatingTimeChip
-                    icon={<FireIcon />}
-                    label='Trending'
-                  />
-                  <LikesBadge>
-                    <FavoriteIcon />
-                    <Typography
-                      variant='body2'
-                      fontWeight='medium'>
-                      25k
-                    </Typography>
-                  </LikesBadge>
-                </Box>
-                <CardContent>
-                  <Typography
-                    variant='h6'
-                    gutterBottom>
-                    Golden Art
-                  </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography
-                      variant='body2'
-                      color='text.secondary'
-                      gutterBottom>
-                      Current Bid
-                    </Typography>
-                    <Typography
-                      variant='h6'
-                      color='text.primary'
-                      fontWeight='bold'>
-                      {formatCurrency(45000)}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      mb: 3,
-                    }}>
-                    <Chip
-                      size='small'
-                      label='5 items left'
-                      sx={{
-                        backgroundColor: '#f5f5f5',
-                        fontWeight: 'medium',
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        color: '#E60023',
-                      }}>
-                      <ClockIcon fontSize='small' />
-                      <Typography
-                        variant='body2'
-                        fontWeight='medium'>
-                        10:10
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <BidButton
-                    fullWidth
-                    variant='contained'
-                    iswinning='false'
-                    startIcon={<GavelIcon />}
-                    onClick={(e) =>
-                      handleOpenModal(
-                        {
-                          image: {
-                            _id: 'trending-001',
-                            imageTitle: 'Golden Art',
-                          },
-                          latestBidAmount: 45000,
-                        },
-                        e
-                      )
-                    }>
-                    Place Bid
-                  </BidButton>
-                </CardContent>
-              </StyledCard>
-            </Grid>
-
             {/* Bid Cards */}
             <AnimatePresence>
               {bids.map((item, index) => {
@@ -660,7 +581,7 @@ const MyBids = () => {
                         />
                         <FloatingTimeChip
                           icon={<ClockIcon />}
-                          label='10:10'
+                          label={fmttDate(item.image.biddingEndDate)}
                         />
                         <LikesBadge>
                           <FavoriteIcon />

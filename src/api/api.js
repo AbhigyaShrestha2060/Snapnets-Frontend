@@ -30,15 +30,15 @@ export const updateProfilePicture = (data) =>
   Api.put('/user/editProfilePicture', data, config);
 
 //Otp
-export const sendOtpApi = (data) => Api.post('/user/sendOtp', data);
-export const verifyOtpApi = (data) => Api.post('/user/verifyOtp', data);
+export const sendOtpApi = (data) => Api.post('/user/resetPasswordEmail', data);
+export const verifyOtpApi = (data) => Api.post('/user/verifyResetOTP', data);
 
 // login with google
 export const googleLoginApi = (data) => Api.post('/user/googleLogin', data);
 // Image Api
 export const uploadImageApi = (data) =>
   Api.post('/api/image/upload', data, config);
-export const getImageById = (id) => Api.get(`/image/get/${id}`);
+export const getImageById = (id) => Api.get(`/image/get/${id}`, config);
 export const getImagesApi = () => Api.get('/image/getAll');
 export const getImageByLike = () =>
   Api.get('/image/getlikedbyuser', jsonConfig);
@@ -58,6 +58,8 @@ export const deleteImage = (id) => Api.delete(`/image/delete/${id}`, config);
 
 export const getImagesByUserId = (id) =>
   Api.get(`/image/getAllImageOfAUserbyId/${id}`, jsonConfig);
+
+export const getTrendingImages = () => Api.get('/image/mostLikedImages');
 
 // Comment Api
 export const addCommentApi = (data) =>
@@ -86,3 +88,35 @@ export const deleteBoard = (id) =>
   Api.delete(`/board/deleteBoard/${id}`, config);
 export const deleteImageFromBoard = (data) =>
   Api.delete('/board/removeImageFromBoard', data, jsonConfig);
+
+// Balance
+export const getBalance = () => Api.get('/balance/balancebyuser', jsonConfig);
+
+export const addBalance = (amount) =>
+  Api.post('/balance/addBalance', amount, jsonConfig);
+
+// Followers
+export const followUser = (data) =>
+  Api.post('/followers/followUser', data, jsonConfig);
+
+export const unfollowUser = (data) =>
+  Api.post('/followers/unfollowUser', data, jsonConfig);
+
+export const getFollowers = () => Api.get('/getFollowers', jsonConfig);
+
+export const getUserFollowDetails = (userIdToCheck) =>
+  Api.get(`/followers/getUserFollowDetails/${userIdToCheck}`, config);
+
+// initialize-khalti
+export const initializeKhalti = (data) =>
+  Api.post('/payment/initialize-khalti', data, jsonConfig);
+
+// notification
+export const getNotification = () =>
+  Api.get('/notification/getNotification', jsonConfig);
+
+export const markNotificationAsRead = (id) =>
+  Api.put(`/notification/markAsRead/${id}`, {}, jsonConfig);
+
+export const markAllNotificationAsRead = () =>
+  Api.put('/notification/markAllAsRead', {}, jsonConfig);

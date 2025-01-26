@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getImageById, likeImageApi } from '../../api/api';
+import { addCommentApi, getImageById, likeImageApi } from '../../api/api';
 import AddBids from '../../components/common/AddBids';
 
 const DetailedProduct = () => {
@@ -38,12 +38,13 @@ const DetailedProduct = () => {
   const [error, setError] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
 
-  // Fetch product details using API
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const response = await getImageById(id);
+        const data = response.data;
         const {
           image,
           imageTitle,
@@ -52,22 +53,34 @@ const DetailedProduct = () => {
           uploadDate,
           totalLikes,
           uploadedBy,
-        } = response.data.image;
+          isReadyToBid,
+          biddingEndDate,
+          biddingStartDate,
+        } = data.image;
+
+        setLiked(data.hasLiked);
+        setLikesCount(totalLikes);
+
+        const highestBid = data.latestBid?.bidAmount ?? 'Not Bid Yet';
+        const userBid = data.userBid?.bidAmount ?? 'Not Bid Yet';
 
         setProduct({
-          image: image,
+          image,
           title: imageTitle,
           description: imageDescription,
-          isPortrait: isPortrait,
+          isPortrait,
           date: new Date(uploadDate).toLocaleDateString(),
-          likes: totalLikes,
           creator: uploadedBy.username,
           creatorPicture: uploadedBy.profilePicture,
-          rating: 4,
-          price: 'Rs 5000',
-          highestBid: 'Rs 10,000',
-          stockLeft: '25/50 sold',
-          auctionEnd: '10:10:10',
+          creatorId: uploadedBy._id,
+          yourBid: userBid,
+          highestBid,
+          biddingStartDate: biddingStartDate
+            ? new Date(biddingStartDate).toLocaleDateString()
+            : 'Not Available',
+          auctionEnd: biddingEndDate
+            ? new Date(biddingEndDate).toLocaleDateString()
+            : 'Not Available',
         });
 
         setLoading(false);
@@ -84,29 +97,33 @@ const DetailedProduct = () => {
     setTextareaInput(e.target.value);
   };
 
-  const handleTextareaSubmit = () => {
+  const handleTextareaSubmit = async () => {
     if (textareaInput.trim()) {
-      console.log('Comment submitted:', textareaInput);
-      setTextareaInput('');
+      try {
+        await addCommentApi({
+          comment: textareaInput,
+          imageId: id,
+        });
+        setTextareaInput('');
+      } catch (error) {
+        console.error('Error adding comment:', error);
+      }
     }
   };
 
   const handleViewComment = () => {
     navigate(`/comment/${id}`);
   };
+
   const toggleLike = async (e) => {
-    e.stopPropagation(); // Prevent image click navigation
+    e.stopPropagation();
     try {
       await likeImageApi(id);
       setLiked((prev) => !prev);
+      setLikesCount((prev) => (liked ? prev - 1 : prev + 1));
     } catch (error) {
       console.error('Error toggling like:', error);
     }
-  };
-
-  const handleBidSubmit = ({ imageId, bidAmount }) => {
-    console.log('Bid Submitted:', { imageId, bidAmount });
-    setModalVisible(false);
   };
 
   if (loading) {
@@ -163,7 +180,6 @@ const DetailedProduct = () => {
       <Grid
         container
         spacing={4}>
-        {/* Left Side - Image and Bid Button */}
         <Grid
           item
           xs={12}
@@ -186,7 +202,6 @@ const DetailedProduct = () => {
           </Paper>
         </Grid>
 
-        {/* Right Side - Product Details */}
         <Grid
           item
           xs={12}
@@ -204,20 +219,19 @@ const DetailedProduct = () => {
                 {product.description}
               </Typography>
               <Typography
+                onClick={() => navigate(`/userUploads/${product.creatorId}`)}
                 variant='subtitle1'
                 sx={{
                   mb: 2,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 1, // Adjust the gap between items
+                  gap: 1,
+                  cursor: 'pointer',
                 }}>
                 <Avatar
-                  src={`http://localhost:5050/${product.creatorPicture}`}
+                  src={`http://localhost:5050${product.creatorPicture}`}
                   alt={product.creator}
-                  sx={{
-                    width: 40,
-                    height: 40,
-                  }}
+                  sx={{ width: 40, height: 40 }}
                 />
                 <Chip
                   label={product.creator || 'Unknown'}
@@ -229,17 +243,16 @@ const DetailedProduct = () => {
               <Typography
                 variant='body2'
                 sx={{ mb: 2 }}>
-                Upload Date : {product.date}
+                Upload Date: {product.date}
               </Typography>
 
-              {/* Rating */}
               <Box sx={{ mb: 2 }}>
                 <Stack
                   direction='row'
                   spacing={1}
                   alignItems='center'>
                   <IconButton
-                    onClick={(e) => toggleLike(e)}
+                    onClick={toggleLike}
                     color={liked ? 'error' : 'default'}
                     sx={{
                       transition: 'transform 0.2s',
@@ -247,7 +260,7 @@ const DetailedProduct = () => {
                     }}>
                     {liked ? <Favorite /> : <FavoriteBorder />}
                   </IconButton>
-                  <Typography variant='body2'>{product.likes} likes</Typography>
+                  <Typography variant='body2'>{likesCount} likes</Typography>
                 </Stack>
               </Box>
 
@@ -264,7 +277,6 @@ const DetailedProduct = () => {
 
               <Divider sx={{ my: 3 }} />
 
-              {/* Stats Grid */}
               <Grid
                 container
                 spacing={2}
@@ -283,9 +295,11 @@ const DetailedProduct = () => {
                     <Typography
                       variant='caption'
                       display='block'>
-                      Price
+                      Your Bid
                     </Typography>
-                    <Typography variant='subtitle2'>{product.price}</Typography>
+                    <Typography variant='subtitle2'>
+                      {product.yourBid}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid
@@ -323,10 +337,10 @@ const DetailedProduct = () => {
                     <Typography
                       variant='caption'
                       display='block'>
-                      Stock Left
+                      Bid Started
                     </Typography>
                     <Typography variant='subtitle2'>
-                      {product.stockLeft}
+                      {product.biddingStartDate}
                     </Typography>
                   </Paper>
                 </Grid>
@@ -362,7 +376,6 @@ const DetailedProduct = () => {
                 </Button>
               </Box>
 
-              {/* Comment Input */}
               <Box sx={{ position: 'relative' }}>
                 <TextField
                   fullWidth
@@ -391,12 +404,13 @@ const DetailedProduct = () => {
         </Grid>
       </Grid>
 
-      {/* Bid Modal */}
       <AddBids
         show={isModalVisible}
         onClose={() => setModalVisible(false)}
         bid={{ image: { _id: id } }}
-        currentBid={parseFloat(product.highestBid?.replace(/[^0-9]/g, '')) || 0}
+        currentBid={
+          typeof product.highestBid === 'number' ? product.highestBid : 0
+        }
         itemTitle={product.title}
       />
     </Box>

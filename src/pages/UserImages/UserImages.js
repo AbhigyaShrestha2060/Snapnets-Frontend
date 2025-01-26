@@ -25,7 +25,15 @@ import {
   UserPlus,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { getImagesByUserId, likeImageApi } from '../../api/api';
+import { useParams } from 'react-router-dom';
+import {
+  followUser,
+  getImagesByUserId,
+  getUserFollowDetails,
+  likeImageApi,
+  unfollowUser,
+} from '../../api/api';
+import FollowModal from '../../components/common/FollowModal';
 
 const PRIMARY_COLOR = '#E60023';
 const PRIMARY_LIGHT = '#FF1A1A';
@@ -47,6 +55,7 @@ const StatsCard = styled(Card)(({ theme }) => ({
   transition: 'transform 0.2s ease',
   border: `1px solid ${alpha(PRIMARY_COLOR, 0.1)}`,
   boxShadow: 'none',
+  cursor: 'pointer',
   '&:hover': {
     transform: 'translateY(-4px)',
   },
@@ -97,6 +106,7 @@ const GradientButton = styled(Button)(({ theme }) => ({
 }));
 
 const UserImages = () => {
+  const { id } = useParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [images, setImages] = useState([]);
@@ -106,20 +116,29 @@ const UserImages = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [totalFollowers, setTotalFollowers] = useState(0);
   const [totalFollowing, setTotalFollowing] = useState(0);
+  const [followData, setFollowData] = useState(null);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const imagesResponse = await getImagesByUserId(
-          '677229ad2e8cb5760a8c60b3'
-        );
+        const [imagesResponse, followResponse] = await Promise.all([
+          getImagesByUserId(id),
+          getUserFollowDetails(id),
+        ]);
+
         if (imagesResponse.data.success) {
           setImages(imagesResponse.data.images);
           setUserName(imagesResponse.data.username);
           setUserProfilePicture(imagesResponse.data.profilePicture);
-          // Assuming the API returns these values - adjust according to your actual API response
-          setTotalFollowers(imagesResponse.data.totalFollowers || 0);
-          setTotalFollowing(imagesResponse.data.totalFollowing || 0);
+        }
+
+        if (followResponse.data.success) {
+          setFollowData(followResponse.data.data);
+          setIsFollowing(followResponse.data.isFollowing);
+          setTotalFollowers(followResponse.data.data.followers.count);
+          setTotalFollowing(followResponse.data.data.following.count);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -128,10 +147,18 @@ const UserImages = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [id]);
 
   const handleFollow = async () => {
     try {
+      const data = { userId: id };
+      if (isFollowing) {
+        await unfollowUser(data);
+        setTotalFollowers((prev) => prev - 1);
+      } else {
+        await followUser(data);
+        setTotalFollowers((prev) => prev + 1);
+      }
       setIsFollowing(!isFollowing);
     } catch (error) {
       console.error('Error toggling follow:', error);
@@ -151,11 +178,6 @@ const UserImages = () => {
                 totalLikes: img.isLikedByLoggedInUser
                   ? img.totalLikes - 1
                   : img.totalLikes + 1,
-                likedBy: img.isLikedByLoggedInUser
-                  ? img.likedBy.filter(
-                      (id) => id !== '677229ad2e8cb5760a8c60b3'
-                    )
-                  : [...img.likedBy, '677229ad2e8cb5760a8c60b3'],
               }
             : img
         )
@@ -246,7 +268,7 @@ const UserImages = () => {
                 xs={12}
                 sm={6}
                 md={3}>
-                <StatsCard>
+                <StatsCard onClick={() => setShowFollowersModal(true)}>
                   <Stack
                     direction='row'
                     spacing={2}
@@ -270,12 +292,13 @@ const UserImages = () => {
                   </Stack>
                 </StatsCard>
               </Grid>
+
               <Grid
                 item
                 xs={12}
                 sm={6}
                 md={3}>
-                <StatsCard>
+                <StatsCard onClick={() => setShowFollowingModal(true)}>
                   <Stack
                     direction='row'
                     spacing={2}
@@ -299,6 +322,7 @@ const UserImages = () => {
                   </Stack>
                 </StatsCard>
               </Grid>
+
               <Grid
                 item
                 xs={12}
@@ -328,6 +352,7 @@ const UserImages = () => {
                   </Stack>
                 </StatsCard>
               </Grid>
+
               <Grid
                 item
                 xs={12}
@@ -444,6 +469,20 @@ const UserImages = () => {
           </motion.div>
         ))}
       </Masonry>
+
+      <FollowModal
+        open={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        title='Followers'
+        data={followData?.followers}
+      />
+
+      <FollowModal
+        open={showFollowingModal}
+        onClose={() => setShowFollowingModal(false)}
+        title='Following'
+        data={followData?.following}
+      />
     </Container>
   );
 };

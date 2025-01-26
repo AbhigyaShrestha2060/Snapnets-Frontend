@@ -1,3 +1,4 @@
+import { GoogleLogin } from '@react-oauth/google';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
@@ -16,16 +17,13 @@ import {
   ModalHeader,
   Row,
 } from 'reactstrap';
-import ParticlesAuth from '../../components/common/ParticlesAuth';
-
-// Import images
-import { GoogleLogin } from '@react-oauth/google';
 import {
   googleLoginApi,
   loginApi,
   sendOtpApi,
   verifyOtpApi,
 } from '../../api/api';
+import ParticlesAuth from '../../components/common/ParticlesAuth';
 
 const Login = () => {
   document.title = 'Login';
@@ -36,14 +34,22 @@ const Login = () => {
   });
 
   const [error, setError] = useState('');
-
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [emailForReset, setEmailForReset] = useState('');
   const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const navigate = useNavigate();
 
-  const toggleForgotModal = () => setIsForgotModalOpen(!isForgotModalOpen);
+  const toggleForgotModal = () => {
+    setIsForgotModalOpen(!isForgotModalOpen);
+    if (!isForgotModalOpen) {
+      setOtp('');
+      setNewPassword('');
+      setEmailForReset('');
+      setIsOtpSent(false);
+    }
+  };
 
   const handleForgotEmailSubmit = async () => {
     if (!emailForReset) {
@@ -62,12 +68,16 @@ const Login = () => {
       });
       setIsOtpSent(true);
     } catch (err) {
-      toast.error('Failed to send OTP. Please try again.', {
-        position: 'top-center',
-        autoClose: 3000,
-      });
+      toast.error(
+        err.response.data.message || 'Failed to send OTP. Please try again.',
+        {
+          position: 'top-center',
+          autoClose: 3000,
+        }
+      );
     }
   };
+
   const handleOtpSubmit = async () => {
     if (!otp) {
       toast.error('Please enter the OTP', {
@@ -77,40 +87,46 @@ const Login = () => {
       return;
     }
 
+    if (!newPassword) {
+      toast.error('Please enter new password', {
+        position: 'top-center',
+        autoClose: 3000,
+      });
+      return;
+    }
+
     try {
-      await verifyOtpApi({ email: emailForReset, otp });
-      toast.success('OTP verified! Please reset your password.', {
+      await verifyOtpApi({ email: emailForReset, otp, newPassword });
+      toast.success('Password reset successful! Please login.', {
         position: 'top-center',
         autoClose: 3000,
       });
       setIsForgotModalOpen(false);
       setIsOtpSent(false);
+      setOtp('');
+      setNewPassword('');
+      setEmailForReset('');
     } catch (err) {
-      toast.error('Invalid OTP. Please try again.', {
+      toast.error(err.message || 'Invalid OTP. Please try again.', {
         position: 'top-center',
         autoClose: 3000,
       });
     }
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData({ ...formData, [id]: value });
   };
 
-  // Validate form inputs
   const validateForm = () => {
     const { email } = formData;
-
     if (!email) {
       return 'Email is required.';
     }
-
     return null;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationError = validateForm();
@@ -128,7 +144,6 @@ const Login = () => {
 
     try {
       const response = await loginApi({ email, password });
-
       toast.success('Login Successful!', {
         position: 'top-center',
         autoClose: 3000,
@@ -137,7 +152,6 @@ const Login = () => {
       localStorage.setItem('user', JSON.stringify(response.data.user));
       setError('');
 
-      // Wait for 3 seconds before navigating
       setTimeout(() => {
         window.location.href = '/homepage';
       }, 3000);
@@ -266,8 +280,6 @@ const Login = () => {
                             className='w-full'
                             onSuccess={(credentialResponse) => {
                               const token = credentialResponse.credential;
-                              // const details = jwtDecode(token);\
-                              console.log(token);
                               googleLoginApi({ token })
                                 .then((response) => {
                                   localStorage.setItem(
@@ -300,9 +312,8 @@ const Login = () => {
                     <Link
                       to='/register'
                       className='fw-semibold text-primary text-decoration-underline'>
-                      {' '}
-                      Signup{' '}
-                    </Link>{' '}
+                      Signup
+                    </Link>
                   </p>
                 </div>
               </Col>
@@ -316,21 +327,34 @@ const Login = () => {
         isOpen={isForgotModalOpen}
         toggle={toggleForgotModal}>
         <ModalHeader toggle={toggleForgotModal}>
-          {isOtpSent ? 'Enter OTP' : 'Forgot Password'}
+          {isOtpSent ? 'Enter OTP & New Password' : 'Forgot Password'}
         </ModalHeader>
         <ModalBody>
           {isOtpSent ? (
-            <div>
-              <Label htmlFor='otp'>OTP</Label>
-              <Input
-                type='text'
-                id='otp'
-                placeholder='Enter the OTP'
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                required
-              />
-            </div>
+            <>
+              <div className='mb-3'>
+                <Label htmlFor='otp'>OTP</Label>
+                <Input
+                  type='text'
+                  id='otp'
+                  placeholder='Enter the OTP'
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor='newPassword'>New Password</Label>
+                <Input
+                  type='password'
+                  id='newPassword'
+                  placeholder='Enter new password'
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </>
           ) : (
             <div>
               <Label htmlFor='emailForReset'>Email</Label>
@@ -350,7 +374,7 @@ const Login = () => {
             <Button
               color='primary'
               onClick={handleOtpSubmit}>
-              Submit OTP
+              Reset Password
             </Button>
           ) : (
             <Button

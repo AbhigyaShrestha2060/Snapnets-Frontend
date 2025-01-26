@@ -20,16 +20,16 @@ import {
 import { motion } from 'framer-motion';
 import { GavelIcon, Heart, Plus } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  addBidApi,
   addImageToBoard,
   createBoard,
   getAllBoardsOfAUser,
   getImageByLike,
   likeImageApi,
 } from '../../api/api';
+import AddBids from '../../components/common/AddBids'; // Adjust the import path as needed
 
+// Styled Components
 const ImageWrapper = styled(Box)(({ theme, isPortrait }) => ({
   position: 'relative',
   overflow: 'hidden',
@@ -42,7 +42,7 @@ const ImageWrapper = styled(Box)(({ theme, isPortrait }) => ({
   '&:hover .overlay': {
     opacity: 1,
   },
-  cursor: 'pointer', // Add cursor pointer to indicate clickable
+  cursor: 'pointer',
   [theme.breakpoints.down('sm')]: {
     height: isPortrait ? '400px' : '250px',
   },
@@ -94,41 +94,38 @@ const FloatingActionButton = styled(Button)(({ theme }) => ({
 }));
 
 const Homepage = () => {
-  const navigate = useNavigate();
   const [images, setImages] = useState([]);
   const [boards, setBoards] = useState([]);
   const [showBidModal, setShowBidModal] = useState(false);
   const [showAddToBoardModal, setShowAddToBoardModal] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [selectedBoardId, setSelectedBoardId] = useState('');
   const [newBoardName, setNewBoardName] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [bidAmount, setBidAmount] = useState('');
 
   useEffect(() => {
     fetchData();
-
-    getAllBoardsOfAUser()
-      .then((response) => {
-        if (response.data.boards) {
-          setBoards(response.data.boards);
-          console.log('Boards:', response.data.boards);
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching boards:', error);
-      });
+    fetchBoards();
   }, []);
 
   const fetchData = async () => {
     try {
-      const [imagesResponse] = await Promise.all([getImageByLike()]);
+      const imagesResponse = await getImageByLike();
       setImages(imagesResponse.data.images);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchBoards = async () => {
+    try {
+      const response = await getAllBoardsOfAUser();
+      if (response.data.boards) {
+        setBoards(response.data.boards);
+      }
+    } catch (error) {
+      console.error('Error fetching boards:', error);
     }
   };
 
@@ -141,15 +138,15 @@ const Homepage = () => {
   };
 
   const handleNavigate = () => {
-    window.location.href = '/myUploads'; // Replace with your desired route
+    window.location.href = '/myUploads';
   };
 
   const handleImageClick = (imageId) => {
-    window.location.href = `/detailedProduct/${imageId}`; // Navigate to image detail page with image ID
+    window.location.href = `/detailedProduct/${imageId}`;
   };
 
   const toggleLike = async (index, e) => {
-    e.stopPropagation(); // Prevent image click navigation
+    e.stopPropagation();
     const image = images[index];
     try {
       await likeImageApi(image._id);
@@ -163,24 +160,21 @@ const Homepage = () => {
     }
   };
 
-  const handleBidSubmit = async () => {
-    try {
-      await addBidApi({
-        imageId: selectedImageId,
-        amount: parseFloat(bidAmount),
-      });
-      setShowBidModal(false);
-      setBidAmount('');
-    } catch (error) {
-      console.error('Error submitting bid:', error);
-    }
+  const handleBidClick = (image, e) => {
+    e.stopPropagation();
+    setSelectedImage(image);
+    setSelectedImageId(image._id);
+    setShowBidModal(true);
+  };
+
+  const handleBidClose = () => {
+    setShowBidModal(false);
+    setSelectedImage(null);
   };
 
   const handleAddToBoard = async () => {
     try {
       if (selectedBoardId) {
-        console.log('Adding to existing board:', selectedBoardId);
-        console.log('Selected image:', selectedImageId);
         await addImageToBoard({
           imageIds: [selectedImageId],
           boardId: selectedBoardId,
@@ -211,7 +205,6 @@ const Homepage = () => {
         minHeight: '100vh',
         px: { xs: 1, sm: 2, md: 3 },
       }}>
-      {/* Images Section */}
       <Box
         component={motion.div}
         initial={{ opacity: 0, y: 20 }}
@@ -226,19 +219,8 @@ const Homepage = () => {
               component={motion.div}
               whileHover={{ scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 300 }}
-              onClick={() => handleImageClick(image._id)} // Add click handler for navigation
-            >
+              onClick={() => handleImageClick(image._id)}>
               <ImageWrapper isPortrait={image.isPortrait}>
-                {!image.loaded && (
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: '100%',
-                      bgcolor: 'grey.200',
-                      animation: 'pulse 1.5s infinite',
-                    }}
-                  />
-                )}
                 <StyledImage
                   src={`http://localhost:5050/images/${image.image}`}
                   alt={image.imageTitle}
@@ -273,17 +255,13 @@ const Homepage = () => {
                       </ActionButton>
                       <ActionButton
                         color='success'
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent image click navigation
-                          setSelectedImageId(image._id);
-                          setShowBidModal(true);
-                        }}>
+                        onClick={(e) => handleBidClick(image, e)}>
                         <GavelIcon />
                       </ActionButton>
                       <ActionButton
                         color='inherit'
                         onClick={(e) => {
-                          e.stopPropagation(); // Prevent image click navigation
+                          e.stopPropagation();
                           setSelectedImageId(image._id);
                           setShowAddToBoardModal(true);
                         }}>
@@ -311,42 +289,16 @@ const Homepage = () => {
         </Masonry>
       </Box>
 
-      {/* Bid Modal */}
-      <Dialog
-        open={showBidModal}
-        onClose={() => setShowBidModal(false)}
-        PaperProps={{
-          elevation: 0,
-          sx: {
-            borderRadius: 2,
-            minWidth: 300,
-          },
-        }}>
-        <DialogTitle>Place Your Bid</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin='dense'
-            label='Bid Amount'
-            type='number'
-            fullWidth
-            value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
-            InputProps={{
-              startAdornment: '',
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowBidModal(false)}>Cancel</Button>
-          <Button
-            onClick={handleBidSubmit}
-            variant='contained'
-            disabled={!bidAmount}>
-            Submit Bid
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* AddBids Modal */}
+      {selectedImage && (
+        <AddBids
+          show={showBidModal}
+          onClose={handleBidClose}
+          bid={{ image: { _id: selectedImage._id } }}
+          currentBid={selectedImage.latestBid?.bidAmount || 0}
+          itemTitle={selectedImage.imageTitle}
+        />
+      )}
 
       {/* Add to Board Modal */}
       <Dialog
@@ -419,15 +371,15 @@ const Homepage = () => {
       {/* Floating Action Button */}
       <FloatingActionButton
         variant='contained'
-        color='error' // Using Material UI's error color (red)
+        color='error'
         onClick={handleNavigate}
         component={motion.button}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         sx={{
-          bgcolor: '#ff1744', // Custom red color (you can adjust this)
+          bgcolor: '#ff1744',
           '&:hover': {
-            bgcolor: '#d50000', // Darker shade for hover
+            bgcolor: '#d50000',
           },
         }}>
         <Add />

@@ -6,11 +6,13 @@ import BoardDetailedPage from './pages/BoardDetailedPage/BoardDetailedPage';
 import Board from './pages/Boards/Boards';
 import Comment from './pages/Comment/Comment';
 import DetailedProduct from './pages/DetailedPage/DetailedPage';
+import HelpAndSupport from './pages/HelpAndSupport/HelpAndSupport';
 import Homepage from './pages/Homepage/Homepage';
 import LikedImages from './pages/LikedImages/LikedImages';
 import Login from './pages/Login/Login';
 import MyBids from './pages/MyBids/MyBids';
 import MyUploads from './pages/MyUploads/MyUploads';
+import PaymentSuccess from './pages/PaymentSuccess/PaymentSuccess';
 import Profile from './pages/Profile/Profile';
 import Register from './pages/Register/Register';
 import Search from './pages/Search/Search';
@@ -85,6 +87,14 @@ function Layout() {
         <Route
           path='/userUploads/:id'
           element={<UserImages />}
+        />
+        <Route
+          path='/helpandsupport'
+          element={<HelpAndSupport />}
+        />
+        <Route
+          path='/payment-success'
+          element={<PaymentSuccess />}
         />
       </Routes>
     </>

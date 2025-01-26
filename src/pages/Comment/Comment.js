@@ -322,12 +322,18 @@ const Comment = () => {
                   spacing={2}
                   sx={{ mb: 2 }}>
                   <Avatar
+                    onClick={() =>
+                      navigate(`/userUploads/${images.uploadedBy?._id}`)
+                    }
                     src={`http://localhost:5050/${images.uploadedBy?.profilePicture}`}
                     sx={{ width: 48, height: 48 }}
                   />
                   <Box flex={1}>
                     <Typography variant='h6'>{images.imageTitle}</Typography>
                     <Typography
+                      onClick={() =>
+                        navigate(`/userUploads/${images.uploadedBy?._id}`)
+                      }
                       variant='caption'
                       color='text.secondary'>
                       by {images.uploadedBy?.username}
@@ -442,6 +448,11 @@ const Comment = () => {
                             }}>
                             <ListItemAvatar>
                               <Avatar
+                                onClick={() =>
+                                  navigate(
+                                    `/userUploads/${comment.commentedBy._id}`
+                                  )
+                                }
                                 src={`http://localhost:5050/${comment.commentedBy.profilePicture}`}
                                 alt={comment.commentedBy.username}
                                 sx={{
@@ -460,7 +471,13 @@ const Comment = () => {
                                   direction='row'
                                   alignItems='center'
                                   spacing={1}>
-                                  <Typography variant='subtitle2'>
+                                  <Typography
+                                    variant='subtitle2'
+                                    onClick={() =>
+                                      navigate(
+                                        `/userUploads/${comment.commentedBy._id}`
+                                      )
+                                    }>
                                     {comment.commentedBy.username}
                                   </Typography>
                                   <Typography
