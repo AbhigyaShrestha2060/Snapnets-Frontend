@@ -1,12 +1,13 @@
 import axios from 'axios';
 
 const Api = axios.create({
-  baseURL: 'http://localhost:5050/api',
+  baseURL: 'https://snapnets-backend.onrender.com/' + '/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'multipart/form-data',
   },
 });
+
 const config = {
   headers: {
     authorization: `Bearer ${localStorage.getItem('token')}`,
