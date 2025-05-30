@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const Api = axios.create({
-  baseURL: 'https://snapnets-backend.onrender.com/' + '/api',
+  baseURL: 'https://snapnets-backend.onrender.com' + '/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'multipart/form-data',
