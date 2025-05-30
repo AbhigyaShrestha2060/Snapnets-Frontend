@@ -29,6 +29,8 @@ export const changePassword = (data) =>
 export const updateProfilePicture = (data) =>
   Api.put('/user/editProfilePicture', data, config);
 
+export const deleteUser = () => Api.delete('/user/deleteUser', config);
+
 //Otp
 export const sendOtpApi = (data) => Api.post('/user/resetPasswordEmail', data);
 export const verifyOtpApi = (data) => Api.post('/user/verifyResetOTP', data);
